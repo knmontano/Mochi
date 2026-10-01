@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mochi 🐾 The Chubby Orange Tabby</title>
+  <title>Mochi the Chubby Cat 🐾</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -15,6 +15,11 @@
       padding: 20px;
       color: #483026;
       min-height: 100vh;
+      transition: background 0.3s ease;
+    }
+    body.dark {
+      background: #1c1826;
+      color: #f5ebe1;
     }
     .header-bar {
       width: 100%;
@@ -40,10 +45,9 @@
       transform: translateY(-2px);
     }
     canvas {
-      background: #fff;
       border: 2px solid #ecd4be;
       border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(72, 48, 38, 0.08);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
       cursor: pointer;
     }
     .controls {
@@ -69,15 +73,20 @@
       gap: 4px;
       transition: all 0.15s ease;
     }
-    .btn:hover { background: #ffe6cf; transform: translateY(-2px); }
+    body.dark .btn {
+      background: #2b2234;
+      border-color: #4f3a5f;
+      color: #f5ebe1;
+    }
+    .btn:hover { transform: translateY(-2px); }
   </style>
 </head>
 <body>
 
   <div class="header-bar">
     <div>
-      <h1 style="font-size: 24px;">Mochi 🐾</h1>
-      <p style="font-size: 13px; color: #987a6c;">Interactive Chubby Orange Tabby</p>
+      <h1 style="font-size: 24px;">Mochi the Chubby Cat 🐾</h1>
+      <p style="font-size: 13px; opacity: 0.8;">Click the lamp to toggle Dark Mode!</p>
     </div>
     <a href="cat.exe" download class="dl-btn">💻 Download cat.exe</a>
   </div>
@@ -97,6 +106,7 @@
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
+    let lampOn = true;
     let cat = {
       name: "Mochi",
       happiness: 88,
@@ -112,7 +122,7 @@
     let animTimer = 0;
     let fishSwim = 0;
     let yarnBounce = 0;
-    let statusMessage = "Mochi happily loafs on her rug, watching the little goldfish.";
+    let statusMessage = "Mochi happily loafs on her rug. Click the standing lamp to toggle lights!";
     let particles = [];
 
     function spawnPop(x, y, text, color) {
@@ -133,9 +143,23 @@
       } catch(e) {}
     }
 
+    function toggleLamp() {
+      lampOn = !lampOn;
+      document.body.classList.toggle("dark", !lampOn);
+      soundBeep(1100, 0.04);
+      setTimeout(() => soundBeep(800, 0.05), 50);
+      if (lampOn) {
+        statusMessage = "*Click!* Warm morning light fills the room. Good morning, Mochi!";
+        spawnPop(385, 150, "LIGHTS ON", "#ffc83c");
+      } else {
+        statusMessage = "*Click!* Cozy dark mode activated. The moon and stars shine outside.";
+        spawnPop(385, 150, "DARK MODE", "#a0b4f0");
+      }
+    }
+
     function feedCat() {
       if (cat.fullness >= 95) {
-        statusMessage = "Mochi pats her round orange belly. Fully packed with salmon!";
+        statusMessage = "Mochi pats her round belly. Fully packed with salmon!";
         spawnPop(cat.posX, 135, "FULL!", "#eb8c3c");
       } else {
         cat.fullness = Math.min(100, cat.fullness + 20);
@@ -161,7 +185,7 @@
         cat.mood = 1;
         cat.moodTimer = 50;
         yarnBounce = 20;
-        statusMessage = "Mochi batted the pink yarn ball and did an orange somersault!";
+        statusMessage = "Mochi batted the pink yarn ball and did a cute somersault!";
         spawnPop(cat.posX, 125, "POUNCE!", "#ff5fa0");
         soundBeep(880, 0.08);
       }
@@ -171,7 +195,7 @@
       cat.mood = 3;
       cat.moodTimer = 100;
       cat.happiness = Math.min(100, cat.happiness + 15);
-      statusMessage = "If it fits, I sits! Her round orange fur spills over the box rim.";
+      statusMessage = "If it fits, I sits! Her round fur spills over the box rim.";
       spawnPop(cat.posX, 125, "I SITS!", "#af7d4b");
       soundBeep(320, 0.12);
     }
@@ -194,7 +218,7 @@
         cat.moodTimer = 90;
         cat.energy -= 30;
         cat.happiness = 100;
-        statusMessage = "💨 ORANGE CAT ZOOMIES! Mochi is galloping across the room!";
+        statusMessage = "💨 CAT ZOOMIES! Mochi is galloping across the room!";
         spawnPop(cat.posX, 115, "ZOOM!!", "#eb4b4b");
         soundBeep(700, 0.1);
       }
@@ -205,7 +229,7 @@
       cat.fullness = Math.max(0, cat.fullness - 10);
       cat.mood = 4;
       cat.moodTimer = 80;
-      statusMessage = "Mochi curled into a round marmalade loaf and drifted off to sleep.";
+      statusMessage = "Mochi curled into a round loaf and drifted off to sleep.";
       spawnPop(cat.posX, 125, "zzz...", "#78b4f0");
       soundBeep(260, 0.2);
     }
@@ -216,8 +240,10 @@
       const my = e.clientY - rect.top;
       const cx = cat.posX;
 
-      // Fish Bowl
-      if (mx >= 45 && mx <= 115 && my >= 160 && my <= 250) {
+      // Lamp Click
+      if (mx >= 370 && mx <= 420 && my >= 90 && my <= 230) {
+        toggleLamp();
+      } else if (mx >= 45 && mx <= 115 && my >= 160 && my <= 250) {
         spawnPop(80, 160, "SPLASH! 🐠", "#4baff5");
         statusMessage = "🐠 The goldfish did a flip! Mochi's emerald eyes lit up.";
         soundBeep(600, 0.08);
@@ -226,7 +252,7 @@
         spawnPop(135, 220, "BOING!", "#ff69a0");
         statusMessage = "🧶 You flicked the pink yarn ball across the floorboards!";
         soundBeep(750, 0.06);
-      } else if (mx >= 320 && mx <= 380 && my >= 210 && my <= 255) {
+      } else if (mx >= 320 && mx <= 365 && my >= 210 && my <= 255) {
         feedCat();
       } else if (Math.abs(mx - cx) < 16 && Math.abs(my - 198) < 12) {
         spawnPop(cx, 180, "BOOP! ♥", "#ff82a0");
@@ -234,11 +260,11 @@
         soundBeep(880, 0.08);
       } else if (Math.abs(mx - cx) < 40 && my > 210 && my < 265) {
         if (Math.random() < 0.3) {
-          statusMessage = "😼 ORANGE TRAP! Mochi playfully bunny-kicked your hand!";
+          statusMessage = "😼 TRAP! Mochi playfully bunny-kicked your hand!";
           spawnPop(cx, 220, "NIP!", "#e65050");
           soundBeep(220, 0.12);
         } else {
-          statusMessage = "Mochi allows warm belly rubs on her soft cream tummy.";
+          statusMessage = "Mochi allows warm belly rubs on her soft tummy.";
           spawnPop(cx, 220, "PURRRR", "#ff78a0");
           soundBeep(330, 0.15);
           cat.mood = 4;
@@ -248,12 +274,12 @@
     });
 
     function drawMeter(x, y, w, h, val, color, label) {
-      ctx.fillStyle = "#483026";
+      ctx.fillStyle = lampOn ? "#483026" : "#f5ebe1";
       ctx.font = "12px Segoe UI";
       ctx.fillText(label, x, y - 6);
       ctx.fillText(`${val}%`, x + w - 30, y - 6);
 
-      ctx.fillStyle = "#f2ece6";
+      ctx.fillStyle = lampOn ? "#f2ece6" : "#282030";
       ctx.beginPath();
       ctx.roundRect(x, y, w, h, 4);
       ctx.fill();
@@ -267,14 +293,13 @@
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 1. Wall & Floor
-      ctx.fillStyle = "#fcf7f1";
+      // Wall & Floor (Day vs Night)
+      ctx.fillStyle = lampOn ? "#fcf7f1" : "#1c1826";
       ctx.fillRect(0, 0, canvas.width, 175);
-      ctx.fillStyle = "#e2b98e";
+      ctx.fillStyle = lampOn ? "#e2b98e" : "#302622";
       ctx.fillRect(0, 175, canvas.width, 175);
 
-      // Floor line
-      ctx.strokeStyle = "#bc8e66";
+      ctx.strokeStyle = lampOn ? "#bc8e66" : "#221a18";
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(0, 175);
@@ -282,13 +307,24 @@
       ctx.stroke();
 
       // Window
-      ctx.fillStyle = "#b4e2fc";
+      ctx.fillStyle = lampOn ? "#b4e2fc" : "#0c0e1c";
       ctx.fillRect(45, 20, 95, 95);
-      ctx.fillStyle = "#ffeb78";
-      ctx.beginPath();
-      ctx.arc(115, 45, 16, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#fff";
+      if (lampOn) {
+        ctx.fillStyle = "#ffeb78";
+        ctx.beginPath();
+        ctx.arc(115, 45, 16, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = "#f5f0be";
+        ctx.beginPath();
+        ctx.arc(115, 45, 13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#0c0e1c";
+        ctx.beginPath();
+        ctx.arc(110, 45, 13, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.strokeStyle = lampOn ? "#fff" : "#554b5f";
       ctx.lineWidth = 4;
       ctx.strokeRect(45, 20, 95, 95);
       ctx.beginPath();
@@ -297,8 +333,8 @@
       ctx.stroke();
 
       // Oval Rug
-      ctx.fillStyle = "#ffdab6";
-      ctx.strokeStyle = "#fff0e1";
+      ctx.fillStyle = lampOn ? "#ffdab6" : "#4c3244";
+      ctx.strokeStyle = lampOn ? "#fff0e1" : "#5f4154";
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.ellipse(225, 250, 130, 60, 0, 0, Math.PI * 2);
@@ -306,15 +342,15 @@
       ctx.stroke();
 
       // Stand & Aquarium
-      ctx.fillStyle = "#a57350";
+      ctx.fillStyle = lampOn ? "#a57350" : "#4b2d1e";
       ctx.beginPath();
       ctx.roundRect(64, 235, 52, 45, 4);
       ctx.fill();
-      ctx.fillStyle = "#b6e6ff";
+      ctx.fillStyle = lampOn ? "#b6e6ff" : "#466e8c";
       ctx.beginPath();
       ctx.ellipse(90, 215, 24, 18, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "#8cc8eb";
+      ctx.strokeStyle = lampOn ? "#8cc8eb" : "#5a82a0";
       ctx.lineWidth = 2;
       ctx.stroke();
 
@@ -336,7 +372,6 @@
       ctx.beginPath();
       ctx.ellipse(bx, by, 19, 9, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Salmon
       ctx.fillStyle = "#ff7a62";
       ctx.beginPath();
       ctx.ellipse(bx - 4, by, 8, 4, 0, 0, Math.PI * 2);
@@ -349,12 +384,31 @@
       ctx.arc(120, yy, 13, 0, Math.PI * 2);
       ctx.fill();
 
-      // Mochi (Orange Cat)
+      // Interactive Standing Lamp
+      const lx = 390;
+      ctx.fillStyle = "#4b3c34";
+      ctx.beginPath();
+      ctx.ellipse(lx, 225, 18, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#6e5f55";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(lx, 225);
+      ctx.lineTo(lx, 120);
+      ctx.stroke();
+
+      ctx.fillStyle = lampOn ? "#ffeb96" : "#bea7a0";
+      ctx.beginPath();
+      ctx.moveTo(lx - 12, 100); ctx.lineTo(lx + 12, 100);
+      ctx.lineTo(lx + 22, 124); ctx.lineTo(lx - 22, 124);
+      ctx.closePath();
+      ctx.fill();
+
+      // The Chubby Cat
       const cx = cat.posX;
       const breathe = Math.sin(animTimer * 2.2) * 3;
       const tailWag = Math.sin(animTimer * 2.5) * 12;
 
-      // Tail
       ctx.strokeStyle = "#fca84c";
       ctx.lineWidth = 14;
       ctx.lineCap = "round";
@@ -363,25 +417,21 @@
       ctx.lineTo(cx + 80 + tailWag, 205);
       ctx.stroke();
 
-      // Body
       ctx.fillStyle = "#fca84c";
       ctx.beginPath();
       ctx.ellipse(cx, 220 + breathe, 72, 60, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Cream Belly
       ctx.fillStyle = "#fff0de";
       ctx.beginPath();
       ctx.ellipse(cx, 230 + breathe, 44, 45, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Paws
       ctx.beginPath();
       ctx.ellipse(cx - 22, 265 + breathe, 14, 10, 0, 0, Math.PI * 2);
       ctx.ellipse(cx + 22, 265 + breathe, 14, 10, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Ears
       ctx.fillStyle = "#fca84c";
       ctx.beginPath();
       ctx.moveTo(cx - 45, 170); ctx.lineTo(cx - 25, 135); ctx.lineTo(cx - 10, 168);
@@ -393,20 +443,17 @@
       ctx.moveTo(cx + 15, 168); ctx.lineTo(cx + 25, 145); ctx.lineTo(cx + 38, 170);
       ctx.fill();
 
-      // Head
       ctx.fillStyle = "#fca84c";
       ctx.beginPath();
       ctx.ellipse(cx, 180, 52, 42, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Forehead M
       ctx.strokeStyle = "#d67024";
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(cx - 14, 150); ctx.lineTo(cx - 10, 160); ctx.lineTo(cx, 155); ctx.lineTo(cx + 10, 160); ctx.lineTo(cx + 14, 150);
       ctx.stroke();
 
-      // Muzzle & Pink Nose
       ctx.fillStyle = "#fff0de";
       ctx.beginPath();
       ctx.ellipse(cx, 192, 22, 12, 0, 0, Math.PI * 2);
@@ -416,7 +463,6 @@
       ctx.moveTo(cx - 5, 188); ctx.lineTo(cx + 5, 188); ctx.lineTo(cx, 194);
       ctx.fill();
 
-      // Eyes
       if (cat.mood === 4) {
         ctx.strokeStyle = "#483026";
         ctx.lineWidth = 3;
@@ -438,29 +484,29 @@
       }
 
       // HUD Status Card
-      ctx.fillStyle = "#fff";
-      ctx.strokeStyle = "#ecd4be";
+      ctx.fillStyle = lampOn ? "#fff" : "#282030";
+      ctx.strokeStyle = lampOn ? "#ecd4be" : "#4b3c55";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(420, 80, 240, 150, 12);
+      ctx.roundRect(435, 75, 225, 150, 12);
       ctx.fill();
       ctx.stroke();
 
-      drawMeter(440, 115, 200, 8, cat.happiness, "#ff7a94", "Happiness ♥");
-      drawMeter(440, 155, 200, 8, cat.fullness, "#ffa444", "Fullness 🐟");
-      drawMeter(440, 195, 200, 8, cat.energy, "#6ecaee", "Energy ⚡");
+      drawMeter(450, 110, 195, 8, cat.happiness, "#ff7a94", "Happiness ♥");
+      drawMeter(450, 150, 195, 8, cat.fullness, "#ffa444", "Fullness 🐟");
+      drawMeter(450, 190, 195, 8, cat.energy, "#6ecaee", "Energy ⚡");
 
       // Status Bubble
-      ctx.fillStyle = "#fff";
+      ctx.fillStyle = lampOn ? "#fff" : "#282030";
       ctx.beginPath();
       ctx.roundRect(40, 298, 605, 36, 8);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = "#483026";
+      ctx.fillStyle = lampOn ? "#483026" : "#f5ebe1";
       ctx.font = "13px Segoe UI";
       ctx.fillText(statusMessage, 54, 321);
 
-      // Particles
+      // Floating Particles
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.y += p.vy;

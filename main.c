@@ -10,49 +10,62 @@
 
 #define TIMER_ANIM 1
 
-// Room & Interior Color Palette
-#define COLOR_WALL          RGB(252, 247, 241) // Warm Ivory Wall
-#define COLOR_FLOOR         RGB(226, 185, 142) // Honey Oak Hardwood
-#define COLOR_FLOOR_LINE    RGB(198, 155, 114) // Plank Seams
-#define COLOR_RUG_BASE      RGB(255, 218, 186) // Warm Peach Center Rug
-#define COLOR_RUG_RING      RGB(255, 240, 225) // Cream Outer Border
-#define COLOR_WINDOW_SKY    RGB(180, 226, 252) // Soft Morning Sky
-#define COLOR_WINDOW_FRAME  RGB(255, 255, 255)
+// Day Mode Color Palette
+#define COLOR_WALL_DAY       RGB(252, 247, 241)
+#define COLOR_FLOOR_DAY      RGB(226, 185, 142)
+#define COLOR_FLOOR_LINE_DAY RGB(198, 155, 114)
+#define COLOR_RUG_DAY        RGB(255, 218, 186)
+#define COLOR_RUG_RING_DAY   RGB(255, 240, 225)
+#define COLOR_SKY_DAY        RGB(180, 226, 252)
 
-// The Classic Chubby Orange Tabby
-#define COLOR_TABBY_ORANGE  RGB(252, 168, 76)  // Golden Orange Coat
-#define COLOR_TABBY_STRIPE  RGB(214, 112, 36)  // Deep Marmalade Stripes
-#define COLOR_TABBY_BELLY   RGB(255, 240, 222) // Creamy Vanilla Chest & Muzzle
-#define COLOR_CAT_NOSE      RGB(255, 150, 165) // Soft Rose Pink Nose
-#define COLOR_CAT_EYES      RGB(92, 196, 128)  // Emerald Green Sparkling Eyes
-#define COLOR_PUPIL         RGB(30, 24, 25)
+// Night / Dark Mode Color Palette
+#define COLOR_WALL_NIGHT       RGB(28, 24, 38)
+#define COLOR_FLOOR_NIGHT      RGB(48, 38, 34)
+#define COLOR_FLOOR_LINE_NIGHT RGB(34, 26, 24)
+#define COLOR_RUG_NIGHT        RGB(76, 50, 68)
+#define COLOR_RUG_RING_NIGHT   RGB(95, 65, 84)
+#define COLOR_SKY_NIGHT        RGB(12, 14, 28)
 
-// Realistic Shaded Ceramic Stone Bowl
-#define COLOR_BOWL_OUTER    RGB(175, 180, 188) // Soft Mineral Grey Outer
-#define COLOR_BOWL_INNER    RGB(142, 148, 158) // Shaded Cavity Grey
-#define COLOR_BOWL_RIM      RGB(210, 215, 222) // Polished Ceramic Lip Highlight
-#define COLOR_SALMON        RGB(255, 122, 98)  // Salmon Cutlet
-#define COLOR_SHRIMP        RGB(255, 144, 124) // Pink Shrimp
+// The Chubby Cat Fur Palette
+#define COLOR_CAT_BASE       RGB(252, 168, 76)
+#define COLOR_CAT_STRIPE     RGB(214, 112, 36)
+#define COLOR_CAT_BELLY      RGB(255, 240, 222)
+#define COLOR_CAT_NOSE       RGB(255, 150, 165)
+#define COLOR_CAT_EYES       RGB(92, 196, 128)
+#define COLOR_PUPIL          RGB(30, 24, 25)
 
-// Interactive Props & Accessories
-#define COLOR_STAND_WOOD    RGB(165, 115, 80)  // Sturdy Wood Stand
-#define COLOR_WATER_BLUE    RGB(182, 230, 255) // Water in Aquarium
-#define COLOR_FISH_GOLD     RGB(255, 118, 48)  // Goldfish
-#define COLOR_BOWL_GLASS    RGB(140, 200, 235) // Glass Outline
-#define COLOR_PLANT_GREEN   RGB(75, 152, 92)   // Aquarium Seaweed
-#define COLOR_YARN          RGB(255, 102, 160) // Bouncing Pink Yarn Ball
+// Ceramic Grey Feeding Bowl
+#define COLOR_BOWL_OUTER     RGB(175, 180, 188)
+#define COLOR_BOWL_INNER     RGB(142, 148, 158)
+#define COLOR_BOWL_RIM       RGB(210, 215, 222)
+#define COLOR_SALMON         RGB(255, 122, 98)
+#define COLOR_SHRIMP         RGB(255, 144, 124)
 
-// UI Colors
-#define COLOR_CARD_BORDER   RGB(236, 212, 190)
-#define COLOR_TEXT_MAIN     RGB(72, 48, 38)
-#define COLOR_TEXT_MUTED    RGB(152, 122, 108)
-#define COLOR_BTN_BG        RGB(255, 242, 230)
-#define COLOR_BTN_BORDER    RGB(232, 190, 154)
+// Props & Accessories
+#define COLOR_STAND_WOOD     RGB(165, 115, 80)
+#define COLOR_WATER_BLUE     RGB(182, 230, 255)
+#define COLOR_FISH_GOLD      RGB(255, 118, 48)
+#define COLOR_BOWL_GLASS     RGB(140, 200, 235)
+#define COLOR_PLANT_GREEN    RGB(75, 152, 92)
+#define COLOR_YARN           RGB(255, 102, 160)
 
-#define COLOR_BAR_BG        RGB(242, 236, 230)
-#define COLOR_BAR_HEART     RGB(255, 122, 148)
-#define COLOR_BAR_FOOD      RGB(255, 164, 68)
-#define COLOR_BAR_ENERGY    RGB(110, 202, 238)
+// Lamp Colors
+#define COLOR_LAMP_POLE      RGB(110, 95, 85)
+#define COLOR_SHADE_OFF      RGB(190, 175, 160)
+#define COLOR_SHADE_ON       RGB(255, 235, 150)
+#define COLOR_LAMP_GLOW      RGB(255, 242, 180)
+
+// UI Accent Colors
+#define COLOR_CARD_BORDER    RGB(236, 212, 190)
+#define COLOR_TEXT_MAIN      RGB(72, 48, 38)
+#define COLOR_TEXT_MUTED     RGB(152, 122, 108)
+#define COLOR_BTN_BG         RGB(255, 242, 230)
+#define COLOR_BTN_BORDER     RGB(232, 190, 154)
+
+#define COLOR_BAR_BG         RGB(242, 236, 230)
+#define COLOR_BAR_HEART      RGB(255, 122, 148)
+#define COLOR_BAR_FOOD       RGB(255, 164, 68)
+#define COLOR_BAR_ENERGY     RGB(110, 202, 238)
 
 typedef struct {
     float x, y;
@@ -82,7 +95,8 @@ float animTimer = 0.0f;
 float fishSwim = 0.0f;
 float yarnBounce = 0.0f;
 float bubbleTimer = 0.0f;
-char statusMessage[128] = "Mochi happily loafs on her rug, watching the little goldfish.";
+bool lampOn = true; // Lamp & Daylight toggle
+char statusMessage[128] = "Mochi happily loafs on her rug. Click the lamp to switch lighting!";
 
 HFONT hFontTitle = NULL;
 HFONT hFontBody  = NULL;
@@ -143,31 +157,58 @@ void drawMeter(HDC hdc, int x, int y, int w, int h, int value, COLORREF fillCol,
     }
 }
 
-// Well-Aligned Room Environment
 void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
     int floorY = top + 155;
 
-    // 1. Warm Neutral Wall
-    HBRUSH wallB = CreateSolidBrush(COLOR_WALL);
+    COLORREF colWall = lampOn ? COLOR_WALL_DAY : COLOR_WALL_NIGHT;
+    COLORREF colFloor = lampOn ? COLOR_FLOOR_DAY : COLOR_FLOOR_NIGHT;
+    COLORREF colPlank = lampOn ? COLOR_FLOOR_LINE_DAY : COLOR_FLOOR_LINE_NIGHT;
+    COLORREF colRug = lampOn ? COLOR_RUG_DAY : COLOR_RUG_NIGHT;
+    COLORREF colRugRing = lampOn ? COLOR_RUG_RING_DAY : COLOR_RUG_RING_NIGHT;
+    COLORREF colSky = lampOn ? COLOR_SKY_DAY : COLOR_SKY_NIGHT;
+
+    // 1. Room Wall
+    HBRUSH wallB = CreateSolidBrush(colWall);
     RECT wallRc = { left, top, right, floorY };
     FillRect(hdc, &wallRc, wallB);
     DeleteObject(wallB);
 
-    // 2. Sunny Morning Window (Left Wall)
+    // 2. Window (Sun in Day / Moon & Stars at Night)
     RECT winRc = { left + 35, top + 18, left + 135, top + 115 };
-    HBRUSH skyB = CreateSolidBrush(COLOR_WINDOW_SKY);
+    HBRUSH skyB = CreateSolidBrush(colSky);
     FillRect(hdc, &winRc, skyB);
     DeleteObject(skyB);
 
-    // Warm Sun
-    HBRUSH sunB = CreateSolidBrush(RGB(255, 235, 120));
-    SelectObject(hdc, sunB);
-    SelectObject(hdc, GetStockObject(NULL_PEN));
-    Ellipse(hdc, winRc.right - 38, winRc.top + 8, winRc.right - 8, winRc.top + 38);
-    DeleteObject(sunB);
+    if (lampOn) {
+        // Daytime Sun
+        HBRUSH sunB = CreateSolidBrush(RGB(255, 235, 120));
+        SelectObject(hdc, sunB);
+        SelectObject(hdc, GetStockObject(NULL_PEN));
+        Ellipse(hdc, winRc.right - 38, winRc.top + 8, winRc.right - 8, winRc.top + 38);
+        DeleteObject(sunB);
+    } else {
+        // Nighttime Crescent Moon & Stars
+        HBRUSH moonB = CreateSolidBrush(RGB(245, 240, 190));
+        SelectObject(hdc, moonB);
+        SelectObject(hdc, GetStockObject(NULL_PEN));
+        Ellipse(hdc, winRc.right - 36, winRc.top + 10, winRc.right - 10, winRc.top + 36);
+        // Shadow to make crescent
+        HBRUSH skyShadow = CreateSolidBrush(COLOR_SKY_NIGHT);
+        SelectObject(hdc, skyShadow);
+        Ellipse(hdc, winRc.right - 42, winRc.top + 10, winRc.right - 16, winRc.top + 36);
+        DeleteObject(moonB);
+        DeleteObject(skyShadow);
 
-    // White Window Pane Frame
-    HPEN winP = CreatePen(PS_SOLID, 4, COLOR_WINDOW_FRAME);
+        // Twinkling Stars
+        HBRUSH starB = CreateSolidBrush(RGB(255, 255, 255));
+        SelectObject(hdc, starB);
+        Ellipse(hdc, winRc.left + 15, winRc.top + 20, winRc.left + 18, winRc.top + 23);
+        Ellipse(hdc, winRc.left + 45, winRc.top + 35, winRc.left + 47, winRc.top + 37);
+        Ellipse(hdc, winRc.left + 25, winRc.top + 60, winRc.left + 28, winRc.top + 63);
+        DeleteObject(starB);
+    }
+
+    HPEN winP = CreatePen(PS_SOLID, 4, lampOn ? RGB(255, 255, 255) : RGB(85, 75, 95));
     SelectObject(hdc, winP);
     SelectObject(hdc, GetStockObject(NULL_BRUSH));
     Rectangle(hdc, winRc.left, winRc.top, winRc.right, winRc.bottom);
@@ -177,19 +218,19 @@ void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
     LineTo(hdc, winRc.right, (winRc.top + winRc.bottom) / 2);
     DeleteObject(winP);
 
-    // 3. Wood Floorboards
-    HBRUSH floorB = CreateSolidBrush(COLOR_FLOOR);
+    // 3. Wooden Floor
+    HBRUSH floorB = CreateSolidBrush(colFloor);
     RECT floorRc = { left, floorY, right, bottom };
     FillRect(hdc, &floorRc, floorB);
     DeleteObject(floorB);
 
-    HPEN baseP = CreatePen(PS_SOLID, 4, RGB(188, 142, 102));
+    HPEN baseP = CreatePen(PS_SOLID, 4, lampOn ? RGB(188, 142, 102) : RGB(40, 30, 30));
     SelectObject(hdc, baseP);
     MoveToEx(hdc, left, floorY, NULL);
     LineTo(hdc, right, floorY);
     DeleteObject(baseP);
 
-    HPEN plankP = CreatePen(PS_SOLID, 1, COLOR_FLOOR_LINE);
+    HPEN plankP = CreatePen(PS_SOLID, 1, colPlank);
     SelectObject(hdc, plankP);
     for (int y = floorY + 28; y < bottom; y += 28) {
         MoveToEx(hdc, left, y, NULL);
@@ -197,46 +238,36 @@ void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
     }
     DeleteObject(plankP);
 
-    // 4. Center Oval Peach Rug (Balanced under Mochi)
-    HBRUSH rugB = CreateSolidBrush(COLOR_RUG_BASE);
-    HPEN rugP = CreatePen(PS_SOLID, 3, COLOR_RUG_RING);
+    // 4. Center Oval Rug
+    HBRUSH rugB = CreateSolidBrush(colRug);
+    HPEN rugP = CreatePen(PS_SOLID, 3, colRugRing);
     SelectObject(hdc, rugB);
     SelectObject(hdc, rugP);
     Ellipse(hdc, left + 90, floorY + 24, left + 345, bottom - 18);
     DeleteObject(rugB);
     DeleteObject(rugP);
 
-    // 5. Left Zone: Wood Nightstand with Glass Aquarium Bowl
+    // 5. Left Zone: Stand with Aquarium Bowl
     int fbx = left + 55;
     int fby = floorY + 30;
 
-    // Wooden Nightstand Table
-    HBRUSH standB = CreateSolidBrush(COLOR_STAND_WOOD);
+    HBRUSH standB = CreateSolidBrush(lampOn ? COLOR_STAND_WOOD : RGB(75, 45, 30));
     SelectObject(hdc, standB);
     SelectObject(hdc, GetStockObject(NULL_PEN));
     RoundRect(hdc, fbx - 26, fby + 28, fbx + 26, fby + 76, 6, 6);
     DeleteObject(standB);
 
-    // Nightstand Shadow
-    HBRUSH standShadB = CreateSolidBrush(RGB(200, 160, 120));
-    SelectObject(hdc, standShadB);
-    Ellipse(hdc, fbx - 28, fby + 70, fbx + 28, fby + 80);
-    DeleteObject(standShadB);
-
-    // Water Inside Aquarium
-    HBRUSH waterB = CreateSolidBrush(COLOR_WATER_BLUE);
+    HBRUSH waterB = CreateSolidBrush(lampOn ? COLOR_WATER_BLUE : RGB(70, 110, 140));
     SelectObject(hdc, waterB);
     Ellipse(hdc, fbx - 24, fby - 4, fbx + 24, fby + 34);
     DeleteObject(waterB);
 
-    // Seaweed Sprig
     HPEN weedP = CreatePen(PS_SOLID, 2, COLOR_PLANT_GREEN);
     SelectObject(hdc, weedP);
     MoveToEx(hdc, fbx - 12, fby + 26, NULL); LineTo(hdc, fbx - 14, fby + 10);
     MoveToEx(hdc, fbx - 8, fby + 26, NULL);  LineTo(hdc, fbx - 6, fby + 14);
     DeleteObject(weedP);
 
-    // Animated Goldfish
     int fishX = fbx + (int)(sinf(fishSwim) * 11.0f);
     int fishY = fby + 14 + (int)(cosf(fishSwim * 1.6f) * 4.0f);
     int fishDir = (cosf(fishSwim) >= 0.0f) ? 1 : -1;
@@ -252,32 +283,28 @@ void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
     Polygon(hdc, tailPts, 3);
     DeleteObject(fishB);
 
-    // Floating Air Bubble in Water
     int bubY = fby + 20 - ((int)(bubbleTimer * 20.0f) % 22);
     HBRUSH bubB = CreateSolidBrush(RGB(255, 255, 255));
     SelectObject(hdc, bubB);
     Ellipse(hdc, fbx + 4, bubY, fbx + 8, bubY + 4);
     DeleteObject(bubB);
 
-    // Glass Bowl Highlight & Outer Rim
-    HPEN glassP = CreatePen(PS_SOLID, 2, COLOR_BOWL_GLASS);
+    HPEN glassP = CreatePen(PS_SOLID, 2, lampOn ? COLOR_BOWL_GLASS : RGB(90, 130, 160));
     SelectObject(hdc, glassP);
     SelectObject(hdc, GetStockObject(NULL_BRUSH));
     Ellipse(hdc, fbx - 26, fby - 6, fbx + 26, fby + 36);
     DeleteObject(glassP);
 
-    // 6. Right Zone: Authentic Ceramic Grey Feeding Bowl
+    // 6. Right Zone: Grey Ceramic Feeding Bowl
     int bx = left + 325;
     int by = floorY + 74;
 
-    // Floor Shadow under Bowl
-    HBRUSH bShadB = CreateSolidBrush(RGB(196, 160, 126));
+    HBRUSH bShadB = CreateSolidBrush(lampOn ? RGB(196, 160, 126) : RGB(30, 24, 26));
     SelectObject(hdc, bShadB);
     SelectObject(hdc, GetStockObject(NULL_PEN));
     Ellipse(hdc, bx - 26, by - 6, bx + 26, by + 16);
     DeleteObject(bShadB);
 
-    // Outer Bowl Body (Soft Stone Grey)
     HBRUSH bowlOuterB = CreateSolidBrush(COLOR_BOWL_OUTER);
     HPEN bowlBorderP = CreatePen(PS_SOLID, 1, RGB(120, 126, 136));
     SelectObject(hdc, bowlOuterB);
@@ -286,40 +313,35 @@ void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
     DeleteObject(bowlOuterB);
     DeleteObject(bowlBorderP);
 
-    // Inner Cavity (Shaded Deeper Grey)
     HBRUSH bowlInnerB = CreateSolidBrush(COLOR_BOWL_INNER);
     SelectObject(hdc, bowlInnerB);
     SelectObject(hdc, GetStockObject(NULL_PEN));
     Ellipse(hdc, bx - 20, by - 9, bx + 20, by + 9);
     DeleteObject(bowlInnerB);
 
-    // Polished Ceramic Lip Highlight Rim
     HPEN rimP = CreatePen(PS_SOLID, 1, COLOR_BOWL_RIM);
     SelectObject(hdc, rimP);
     SelectObject(hdc, GetStockObject(NULL_BRUSH));
     Ellipse(hdc, bx - 23, by - 11, bx + 23, by + 11);
     DeleteObject(rimP);
 
-    // Salmon Steak nestled in the bowl
     HBRUSH salmonB = CreateSolidBrush(COLOR_SALMON);
     SelectObject(hdc, salmonB);
     Ellipse(hdc, bx - 14, by - 6, bx + 4, by + 4);
     DeleteObject(salmonB);
 
-    // Salmon Marbling Stripes
     HPEN salmP = CreatePen(PS_SOLID, 1, RGB(255, 230, 222));
     SelectObject(hdc, salmP);
     MoveToEx(hdc, bx - 10, by - 4, NULL); LineTo(hdc, bx - 6, by + 2);
     MoveToEx(hdc, bx - 4, by - 5, NULL);  LineTo(hdc, bx, by + 1);
     DeleteObject(salmP);
 
-    // Shrimp Treat
     HBRUSH shrimpB = CreateSolidBrush(COLOR_SHRIMP);
     SelectObject(hdc, shrimpB);
     Arc(hdc, bx + 2, by - 7, bx + 15, by + 6, bx + 15, by + 2, bx + 2, by - 4);
     DeleteObject(shrimpB);
 
-    // 7. Interactive Bouncing Pink Yarn Ball (Tucked on rug side)
+    // 7. Interactive Yarn Ball
     int yx = left + 105;
     int yy = floorY + 84 - (int)yarnBounce;
     HBRUSH yarnB = CreateSolidBrush(COLOR_YARN);
@@ -333,14 +355,53 @@ void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
     LineTo(hdc, yx + 24, yy + 16);
     LineTo(hdc, yx + 36, yy + 12);
     DeleteObject(yarnStrP);
+
+    // 8. Interactive Standing Lamp (Right Side between rug & HUD)
+    int lx = left + 365;
+    int ly = floorY - 60;
+
+    // Floor Base
+    HBRUSH lampBaseB = CreateSolidBrush(RGB(75, 60, 52));
+    SelectObject(hdc, lampBaseB);
+    Ellipse(hdc, lx - 18, floorY + 45, lx + 18, floorY + 55);
+    DeleteObject(lampBaseB);
+
+    // Tall Brass Lamp Pole
+    HPEN poleP = CreatePen(PS_SOLID, 3, COLOR_LAMP_POLE);
+    SelectObject(hdc, poleP);
+    MoveToEx(hdc, lx, floorY + 48, NULL);
+    LineTo(hdc, lx, ly + 25);
+    DeleteObject(poleP);
+
+    // Lamp Shade
+    HBRUSH shadeB = CreateSolidBrush(lampOn ? COLOR_SHADE_ON : COLOR_SHADE_OFF);
+    HPEN shadeP = CreatePen(PS_SOLID, 1, lampOn ? RGB(235, 200, 100) : RGB(140, 130, 120));
+    SelectObject(hdc, shadeB);
+    SelectObject(hdc, shadeP);
+    POINT shadePts[4] = {
+        { lx - 12, ly + 4 },
+        { lx + 12, ly + 4 },
+        { lx + 22, ly + 26 },
+        { lx - 22, ly + 26 }
+    };
+    Polygon(hdc, shadePts, 4);
+    DeleteObject(shadeB);
+    DeleteObject(shadeP);
+
+    // Warm Light Ambient Glow if Lamp is On
+    if (lampOn) {
+        HBRUSH bulbB = CreateSolidBrush(RGB(255, 255, 220));
+        SelectObject(hdc, bulbB);
+        SelectObject(hdc, GetStockObject(NULL_PEN));
+        Ellipse(hdc, lx - 7, ly + 24, lx + 7, ly + 32);
+        DeleteObject(bulbB);
+    }
 }
 
-// Chubby Orange Tabby Cat
-void drawOrangeTabbyCat(HDC hdc, int cx, int cy) {
+void drawTheChubbyCat(HDC hdc, int cx, int cy) {
     float breathe = sinf(animTimer * 2.2f) * 3.0f;
     float tailWag = sinf(animTimer * (cat.mood == 2 || cat.mood == 5 ? 7.5f : 2.5f)) * 14.0f;
 
-    // Box Mode
     if (cat.mood == 3) {
         HBRUSH boxB = CreateSolidBrush(RGB(198, 148, 92));
         HPEN boxP = CreatePen(PS_SOLID, 2, RGB(145, 102, 58));
@@ -358,43 +419,37 @@ void drawOrangeTabbyCat(HDC hdc, int cx, int cy) {
     }
 
     if (cat.mood != 3) {
-        // Floor Shadow
-        HBRUSH shadB = CreateSolidBrush(RGB(226, 186, 154));
+        HBRUSH shadB = CreateSolidBrush(lampOn ? RGB(226, 186, 154) : RGB(45, 30, 42));
         SelectObject(hdc, shadB);
         SelectObject(hdc, GetStockObject(NULL_PEN));
         Ellipse(hdc, cx - 115, cy + 52, cx + 115, cy + 86);
         DeleteObject(shadB);
 
-        // Fluffy Tabby Striped Tail
         int tailEndX = cx + 86 + (int)tailWag;
         int tailEndY = cy + 16 + (int)(tailWag * 0.4f);
 
-        HPEN tailBase = CreatePen(PS_SOLID, 15, COLOR_TABBY_ORANGE);
+        HPEN tailBase = CreatePen(PS_SOLID, 15, COLOR_CAT_BASE);
         SelectObject(hdc, tailBase);
         MoveToEx(hdc, cx + 55, cy + 46, NULL);
         LineTo(hdc, tailEndX, tailEndY);
         DeleteObject(tailBase);
 
-        // Marmalade Stripes
-        HPEN tailStripe = CreatePen(PS_SOLID, 15, COLOR_TABBY_STRIPE);
+        HPEN tailStripe = CreatePen(PS_SOLID, 15, COLOR_CAT_STRIPE);
         SelectObject(hdc, tailStripe);
         MoveToEx(hdc, cx + 68 + (int)(tailWag * 0.4f), cy + 34, NULL);
         LineTo(hdc, cx + 76 + (int)(tailWag * 0.6f), cy + 26);
         DeleteObject(tailStripe);
 
-        // Chubby Body
-        HBRUSH bodyB = CreateSolidBrush(COLOR_TABBY_ORANGE);
+        HBRUSH bodyB = CreateSolidBrush(COLOR_CAT_BASE);
         SelectObject(hdc, bodyB);
         Ellipse(hdc, cx - 82, cy - 22 + (int)breathe, cx + 82, cy + 70 + (int)breathe);
 
-        // Cream Chest & Belly
-        HBRUSH bellyB = CreateSolidBrush(COLOR_TABBY_BELLY);
+        HBRUSH bellyB = CreateSolidBrush(COLOR_CAT_BELLY);
         SelectObject(hdc, bellyB);
         Ellipse(hdc, cx - 50, cy + 4 + (int)breathe, cx + 50, cy + 66 + (int)breathe);
         DeleteObject(bellyB);
 
-        // Flank Stripes
-        HPEN stripeP = CreatePen(PS_SOLID, 4, COLOR_TABBY_STRIPE);
+        HPEN stripeP = CreatePen(PS_SOLID, 4, COLOR_CAT_STRIPE);
         SelectObject(hdc, stripeP);
         MoveToEx(hdc, cx - 78, cy + 10 + (int)breathe, NULL); LineTo(hdc, cx - 52, cy + 18 + (int)breathe);
         MoveToEx(hdc, cx - 74, cy + 28 + (int)breathe, NULL); LineTo(hdc, cx - 48, cy + 32 + (int)breathe);
@@ -402,8 +457,7 @@ void drawOrangeTabbyCat(HDC hdc, int cx, int cy) {
         MoveToEx(hdc, cx + 74, cy + 28 + (int)breathe, NULL); LineTo(hdc, cx + 48, cy + 32 + (int)breathe);
         DeleteObject(stripeP);
 
-        // Paws
-        HBRUSH pawB = CreateSolidBrush(COLOR_TABBY_BELLY);
+        HBRUSH pawB = CreateSolidBrush(COLOR_CAT_BELLY);
         SelectObject(hdc, pawB);
         SelectObject(hdc, GetStockObject(NULL_PEN));
         Ellipse(hdc, cx - 36, cy + 54 + (int)breathe, cx - 10, cy + 72 + (int)breathe);
@@ -411,7 +465,7 @@ void drawOrangeTabbyCat(HDC hdc, int cx, int cy) {
         DeleteObject(pawB);
         DeleteObject(bodyB);
     } else {
-        HBRUSH pawB = CreateSolidBrush(COLOR_TABBY_BELLY);
+        HBRUSH pawB = CreateSolidBrush(COLOR_CAT_BELLY);
         SelectObject(hdc, pawB);
         SelectObject(hdc, GetStockObject(NULL_PEN));
         Ellipse(hdc, cx - 48, cy + 8, cx - 18, cy + 28);
@@ -419,8 +473,7 @@ void drawOrangeTabbyCat(HDC hdc, int cx, int cy) {
         DeleteObject(pawB);
     }
 
-    // Pointy Ears
-    HBRUSH bodyB = CreateSolidBrush(COLOR_TABBY_ORANGE);
+    HBRUSH bodyB = CreateSolidBrush(COLOR_CAT_BASE);
     SelectObject(hdc, bodyB);
     SelectObject(hdc, GetStockObject(NULL_PEN));
     POINT earLeft[3]  = { { cx - 52, cy - 36 }, { cx - 28, cy - 72 }, { cx - 12, cy - 38 } };
@@ -436,13 +489,11 @@ void drawOrangeTabbyCat(HDC hdc, int cx, int cy) {
     Polygon(hdc, inEarR, 3);
     DeleteObject(inEarB);
 
-    // Round Head
     SelectObject(hdc, bodyB);
     Ellipse(hdc, cx - 58, cy - 56, cx + 58, cy + 18);
     DeleteObject(bodyB);
 
-    // Tabby "M" Forehead Stripes
-    HPEN stripeP = CreatePen(PS_SOLID, 4, COLOR_TABBY_STRIPE);
+    HPEN stripeP = CreatePen(PS_SOLID, 4, COLOR_CAT_STRIPE);
     SelectObject(hdc, stripeP);
     MoveToEx(hdc, cx - 16, cy - 50, NULL); LineTo(hdc, cx - 12, cy - 36);
     MoveToEx(hdc, cx - 12, cy - 36, NULL); LineTo(hdc, cx, cy - 42);
@@ -453,8 +504,7 @@ void drawOrangeTabbyCat(HDC hdc, int cx, int cy) {
     MoveToEx(hdc, cx + 52, cy - 12, NULL); LineTo(hdc, cx + 38, cy - 8);
     DeleteObject(stripeP);
 
-    // Muzzle & Whiskers
-    HBRUSH muzB = CreateSolidBrush(COLOR_TABBY_BELLY);
+    HBRUSH muzB = CreateSolidBrush(COLOR_CAT_BELLY);
     SelectObject(hdc, muzB);
     SelectObject(hdc, GetStockObject(NULL_PEN));
     Ellipse(hdc, cx - 24, cy - 12, cx + 24, cy + 12);
@@ -478,7 +528,6 @@ void drawOrangeTabbyCat(HDC hdc, int cx, int cy) {
     MoveToEx(hdc, cx + 22, cy + 3, NULL); LineTo(hdc, cx + 58, cy + 8);
     DeleteObject(mouthP);
 
-    // Eyes
     if (cat.mood == 5) {
         HBRUSH bigEye = CreateSolidBrush(COLOR_PUPIL);
         SelectObject(hdc, bigEye);
@@ -535,10 +584,23 @@ void soundBoop() { Beep(880, 80); }
 void soundPurr() { Beep(220, 100); Beep(240, 100); }
 void soundZoom() { Beep(600, 50); Beep(800, 50); Beep(1100, 70); }
 void soundNip()  { Beep(300, 120); }
+void soundSwitch() { Beep(1200, 40); Beep(900, 50); }
+
+void toggleLamp() {
+    lampOn = !lampOn;
+    soundSwitch();
+    if (lampOn) {
+        snprintf(statusMessage, sizeof(statusMessage), "*Click!* Warm morning light fills the room. Good morning, Mochi!");
+        spawnPopText(380, 150, L"LIGHTS ON", RGB(255, 200, 60));
+    } else {
+        snprintf(statusMessage, sizeof(statusMessage), "*Click!* Cozy dark mode activated. The moon and stars shine outside.");
+        spawnPopText(380, 150, L"DARK MODE", RGB(160, 180, 240));
+    }
+}
 
 void feedCat() {
     if (cat.fullness >= 95) {
-        snprintf(statusMessage, sizeof(statusMessage), "Mochi pats her round orange belly. Fully packed with salmon!");
+        snprintf(statusMessage, sizeof(statusMessage), "Mochi pats her round belly. Fully packed with salmon!");
         spawnPopText(cat.posX, 135, L"FULL!", RGB(235, 140, 60));
     } else {
         cat.fullness = (cat.fullness + 20 > 100) ? 100 : cat.fullness + 20;
@@ -564,7 +626,7 @@ void playCat() {
         cat.mood = 1;
         cat.moodTimer = 50;
         yarnBounce = 20.0f;
-        snprintf(statusMessage, sizeof(statusMessage), "Mochi batted the pink yarn ball and did an orange somersault!");
+        snprintf(statusMessage, sizeof(statusMessage), "Mochi batted the pink yarn ball and did a cute somersault!");
         spawnPopText(cat.posX, 125, L"POUNCE!", RGB(255, 95, 155));
         soundBoop();
     }
@@ -574,7 +636,7 @@ void boxCat() {
     cat.mood = 3;
     cat.moodTimer = 100;
     cat.happiness = (cat.happiness + 15 > 100) ? 100 : cat.happiness + 15;
-    snprintf(statusMessage, sizeof(statusMessage), "If it fits, I sits! Her round orange fur spills over the box rim.");
+    snprintf(statusMessage, sizeof(statusMessage), "If it fits, I sits! Her round fur spills over the box rim.");
     spawnPopText(cat.posX, 125, L"I SITS!", RGB(175, 125, 75));
     soundPurr();
 }
@@ -597,7 +659,7 @@ void zoomiesCat() {
         cat.moodTimer = 90;
         cat.energy -= 30;
         cat.happiness = 100;
-        snprintf(statusMessage, sizeof(statusMessage), "💨 ORANGE CAT ZOOMIES! Mochi is galloping across the room!");
+        snprintf(statusMessage, sizeof(statusMessage), "💨 CAT ZOOMIES! Mochi is galloping across the room!");
         spawnPopText(cat.posX, 115, L"ZOOM!!", RGB(235, 75, 75));
         soundZoom();
     }
@@ -608,7 +670,7 @@ void napCat() {
     cat.fullness = (cat.fullness - 10 < 0) ? 0 : cat.fullness - 10;
     cat.mood = 4;
     cat.moodTimer = 80;
-    snprintf(statusMessage, sizeof(statusMessage), "Mochi curled into a round marmalade loaf and drifted off to sleep.");
+    snprintf(statusMessage, sizeof(statusMessage), "Mochi curled into a round loaf and drifted off to sleep.");
     spawnPopText(cat.posX, 125, L"zzz...", RGB(120, 180, 240));
     soundPurr();
 }
@@ -617,7 +679,13 @@ void clickInteractiveScene(int mx, int my) {
     int cx = (int)cat.posX;
     int cy = 205;
 
-    // 1. Click Fish Bowl Stand & Goldfish
+    // 1. Click Standing Lamp (Toggle Dark Mode)
+    if (mx >= 355 && mx <= 410 && my >= 95 && my <= 220) {
+        toggleLamp();
+        return;
+    }
+
+    // 2. Click Aquarium Stand & Goldfish
     if (mx >= 45 && mx <= 115 && my >= 160 && my <= 250) {
         spawnPopText(80, 160, L"SPLASH! 🐠", RGB(75, 175, 245));
         snprintf(statusMessage, sizeof(statusMessage), "🐠 The goldfish did a flip! Mochi's emerald eyes lit up.");
@@ -625,7 +693,7 @@ void clickInteractiveScene(int mx, int my) {
         return;
     }
 
-    // 2. Click Pink Yarn Ball
+    // 3. Click Pink Yarn Ball
     if (mx >= 115 && mx <= 155 && my >= 220 && my <= 260) {
         yarnBounce = 22.0f;
         spawnPopText(135, 220, L"BOING!", RGB(255, 105, 160));
@@ -635,13 +703,13 @@ void clickInteractiveScene(int mx, int my) {
         return;
     }
 
-    // 3. Click Ceramic Grey Food Bowl
-    if (mx >= 320 && mx <= 380 && my >= 210 && my <= 255) {
+    // 4. Click Ceramic Grey Food Bowl
+    if (mx >= 320 && mx <= 365 && my >= 210 && my <= 255) {
         feedCat();
         return;
     }
 
-    // 4. Click Nose / Boop
+    // 5. Click Nose / Boop
     if (mx >= cx - 12 && mx <= cx + 12 && my >= cy - 12 && my <= cy + 4) {
         spawnPopText(cx, cy - 25, L"BOOP! ♥", RGB(255, 130, 160));
         snprintf(statusMessage, sizeof(statusMessage), "👉 *BOOP!* You tapped her soft pink button nose!");
@@ -650,11 +718,11 @@ void clickInteractiveScene(int mx, int my) {
         return;
     }
 
-    // 5. Click Chubby Cheeks
+    // 6. Click Chubby Cheeks
     if ((mx >= cx - 55 && mx <= cx - 20 && my >= cy - 20 && my <= cy + 15) ||
         (mx >= cx + 20 && mx <= cx + 55 && my >= cy - 20 && my <= cy + 15)) {
         spawnPopText(cx, cy - 35, L"SQUISH! ♥", RGB(255, 140, 170));
-        snprintf(statusMessage, sizeof(statusMessage), "You squished her chubby orange cheeks. Maximum purring activated!");
+        snprintf(statusMessage, sizeof(statusMessage), "You squished her chubby cheeks. Maximum purring activated!");
         soundPurr();
         cat.happiness = (cat.happiness + 10 > 100) ? 100 : cat.happiness + 10;
         cat.mood = 4;
@@ -662,14 +730,14 @@ void clickInteractiveScene(int mx, int my) {
         return;
     }
 
-    // 6. Click Warm Tummy
+    // 7. Click Warm Tummy
     if (mx >= cx - 40 && mx <= cx + 40 && my >= cy + 10 && my <= cy + 60) {
         if (rand() % 3 == 0) {
-            snprintf(statusMessage, sizeof(statusMessage), "😼 ORANGE TRAP! Mochi playfully bunny-kicked your hand!");
+            snprintf(statusMessage, sizeof(statusMessage), "😼 TRAP! Mochi playfully bunny-kicked your hand!");
             spawnPopText(cx, cy, L"NIP!", RGB(230, 80, 80));
             soundNip();
         } else {
-            snprintf(statusMessage, sizeof(statusMessage), "Mochi allows warm belly rubs on her soft cream tummy.");
+            snprintf(statusMessage, sizeof(statusMessage), "Mochi allows warm belly rubs on her soft tummy.");
             spawnPopText(cx, cy, L"PURRRR", RGB(255, 120, 160));
             soundPurr();
             cat.happiness = (cat.happiness + 15 > 100) ? 100 : cat.happiness + 15;
@@ -769,46 +837,44 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         HBITMAP hbm = CreateCompatibleBitmap(hdcWin, winW, winH);
         HBITMAP oldBmp = (HBITMAP)SelectObject(hdc, hbm);
 
-        // Window Background
-        HBRUSH bgB = CreateSolidBrush(COLOR_WALL);
+        COLORREF windowBg = lampOn ? COLOR_WALL_DAY : COLOR_WALL_NIGHT;
+        HBRUSH bgB = CreateSolidBrush(windowBg);
         FillRect(hdc, &clientRc, bgB);
         DeleteObject(bgB);
 
-        // Card Panel
         RECT cardRc = { 25, 20, winW - 25, 350 };
         drawCozyRoom(hdc, cardRc.left, cardRc.top, cardRc.right, cardRc.bottom);
 
-        HPEN borderPen = CreatePen(PS_SOLID, 2, COLOR_CARD_BORDER);
+        HPEN borderPen = CreatePen(PS_SOLID, 2, lampOn ? COLOR_CARD_BORDER : RGB(65, 55, 75));
         SelectObject(hdc, borderPen);
         SelectObject(hdc, GetStockObject(NULL_BRUSH));
         RoundRect(hdc, cardRc.left, cardRc.top, cardRc.right, cardRc.bottom, 16, 16);
         DeleteObject(borderPen);
 
-        // Clean Header Badge: Just "Mochi"
+        // Header Title: "Mochi the Chubby Cat"
         SetBkMode(hdc, TRANSPARENT);
-        SetTextColor(hdc, COLOR_TEXT_MAIN);
+        SetTextColor(hdc, lampOn ? COLOR_TEXT_MAIN : RGB(245, 235, 225));
         SelectObject(hdc, hFontTitle);
-        TextOutW(hdc, 45, 32, L"Mochi 🐾", 8);
+        TextOutW(hdc, 45, 32, L"Mochi the Chubby Cat 🐾", 23);
 
         SelectObject(hdc, hFontSmall);
-        SetTextColor(hdc, COLOR_TEXT_MUTED);
-        wchar_t weightStr[64];
-        swprintf(weightStr, 64, L"Chonk: %.2f kg  |  Click Mochi, the fish bowl, or bowl!", cat.weight);
+        SetTextColor(hdc, lampOn ? COLOR_TEXT_MUTED : RGB(180, 165, 185));
+        wchar_t weightStr[80];
+        swprintf(weightStr, 80, L"Weight: %.2f kg  |  Click the lamp to toggle Dark Mode!", cat.weight);
         TextOutW(hdc, 45, 60, weightStr, wcslen(weightStr));
 
-        // Render Mochi
-        drawOrangeTabbyCat(hdc, (int)cat.posX, 205);
+        drawTheChubbyCat(hdc, (int)cat.posX, 205);
 
-        // Glassmorphism HUD (Top Right)
-        int mx = 390;
-        RECT meterCard = { mx - 10, 100, mx + 240, 260 };
-        drawRoundedBox(hdc, meterCard, RGB(255, 255, 255), COLOR_CARD_BORDER, 12);
+        // HUD Card
+        int mx = 415;
+        RECT meterCard = { mx - 10, 95, mx + 225, 260 };
+        drawRoundedBox(hdc, meterCard, lampOn ? RGB(255, 255, 255) : RGB(40, 32, 48), 
+                                       lampOn ? COLOR_CARD_BORDER : RGB(75, 60, 85), 12);
 
-        drawMeter(hdc, mx, 125, 220, 10, cat.happiness, COLOR_BAR_HEART, L"Happiness ♥");
-        drawMeter(hdc, mx, 175, 220, 10, cat.fullness,  COLOR_BAR_FOOD,  L"Fullness 🐟");
-        drawMeter(hdc, mx, 225, 220, 10, cat.energy,    COLOR_BAR_ENERGY, L"Energy ⚡");
+        drawMeter(hdc, mx, 125, 205, 10, cat.happiness, COLOR_BAR_HEART, L"Happiness ♥");
+        drawMeter(hdc, mx, 175, 205, 10, cat.fullness,  COLOR_BAR_FOOD,  L"Fullness 🐟");
+        drawMeter(hdc, mx, 225, 205, 10, cat.energy,    COLOR_BAR_ENERGY, L"Energy ⚡");
 
-        // Action Text Particles
         SelectObject(hdc, hFontPop);
         for (int i = 0; i < MAX_PARTS; i++) {
             if (particles[i].life > 0) {
@@ -819,8 +885,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
         // Status Bubble
         RECT bubbleRc = { 45, 295, winW - 45, 335 };
-        drawRoundedBox(hdc, bubbleRc, RGB(255, 255, 255), COLOR_CARD_BORDER, 10);
-        SetTextColor(hdc, COLOR_TEXT_MAIN);
+        drawRoundedBox(hdc, bubbleRc, lampOn ? RGB(255, 255, 255) : RGB(40, 32, 48), 
+                                       lampOn ? COLOR_CARD_BORDER : RGB(75, 60, 85), 10);
+        SetTextColor(hdc, lampOn ? COLOR_TEXT_MAIN : RGB(245, 235, 225));
         SelectObject(hdc, hFontSmall);
 
         wchar_t wMsg[256];
@@ -862,7 +929,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     srand((unsigned int)time(NULL));
 
-    const wchar_t CLASS_NAME[] = L"MochiRoomWindow";
+    const wchar_t CLASS_NAME[] = L"MochiTheChubbyCatWindow";
     WNDCLASSW wc = {0};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
@@ -873,7 +940,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterClassW(&wc);
 
     HWND hwnd = CreateWindowExW(
-        0, CLASS_NAME, L"Mochi",
+        0, CLASS_NAME, L"Mochi the Chubby Cat",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT, 685, 480,
         NULL, NULL, hInstance, NULL
