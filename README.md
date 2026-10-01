@@ -1,4 +1,4 @@
-# 🐾 Mochi: The Chubby Orange Tabby Cat
+# 🐾 Mochi: The Chubby Cat
 
 A cozy, interactive desktop simulator featuring **Mochi**, a round and fluffy orange tabby cat. Built in pure C using the native Windows GDI API with zero external game engine dependencies.
 
