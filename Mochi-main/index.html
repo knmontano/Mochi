@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mochi the Chubby Cat 🐾</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(ellipse at top, #fff6ea, #f6e3cf 70%);
+      font-family: system-ui, 'Segoe UI', Tahoma, sans-serif;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px; color: #483026; min-height: 100vh;
+      transition: background 0.6s ease;
+      background-attachment: fixed;
+      user-select: none;
+    }
+    body.dark { background: radial-gradient(ellipse at top, #2a2140, #120e1c 75%); color: #f5ebe1; }
+    .header-bar { width: 100%; max-width: 685px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    h1 { letter-spacing: -0.3px; font-size: 24px; }
+    canvas { 
+      border-radius: 20px; 
+      box-shadow: 0 18px 50px rgba(120,70,30,.22), 0 2px 6px rgba(0,0,0,.06); 
+      cursor: pointer; max-width: 100%; height: auto;
+      transition: box-shadow 0.6s ease;
+      border: none;
+    }
+    body.dark canvas { box-shadow: 0 18px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.07); }
+    
+    .panel-container {
+      display: flex; gap: 10px; width: 100%; max-width: 685px; margin-top: 14px;
+    }
+    .controls {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; flex: 2;
+    }
+    .rooms {
+      display: flex; flex-direction: column; gap: 10px; flex: 1;
+    }
+    .btn {
+      background: linear-gradient(#fffaf4, #ffe9d6); border: 1px solid #efc9a8;
+      border-radius: 12px; padding: 10px 0; color: #483026; font-weight: 600; font-size: 13px;
+      cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+      box-shadow: 0 3px 0 #ebc7a6, 0 8px 14px rgba(150,90,40,.12);
+      transition: all 0.15s ease;
+    }
+    .btn:hover { transform: translateY(-3px); box-shadow: 0 5px 0 #ebc7a6, 0 12px 20px rgba(150,90,40,.18); }
+    .btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #ebc7a6; }
+    .btn span:first-child { font-size: 20px; }
+    .btn small { font-size: 10px; font-weight: 400; opacity: 0.6; }
+    .btn.dim { opacity: 0.5; }
+    
+    .btn.active-room { border: 2px solid #fa964b; background: #fff; transform: translateY(-2px); }
+    .btn.laser-active { background: #ffebeb; border-color: #ff8c8c; box-shadow: 0 3px 0 #ff8c8c; }
+    
+    body.dark .btn { background: linear-gradient(#352a45, #271f34); border-color: #54406a; color: #f5ebe1; box-shadow: 0 3px 0 #1a1424, 0 8px 14px rgba(0,0,0,.35); }
+    body.dark .btn.active-room { border-color: #a0b4f0; background: #423654; }
+    body.dark .btn.laser-active { background: #4a2530; border-color: #e65050; }
+    
+    .mute { flex-direction: row; padding: 8px 12px; margin-right: 8px; font-size: 16px; box-shadow: 0 3px 0 #ebc7a6; }
+    body.dark .mute { box-shadow: 0 3px 0 #1a1424; }
+    .hdr-right { display: flex; align-items: center; }
+    .dl-btn {
+      background: #fa964b; color: #fff; text-decoration: none; font-weight: bold;
+      font-size: 14px; padding: 10px 18px; border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(250, 150, 75, 0.35); transition: all 0.2s ease;
+    }
+    .dl-btn:hover { background: #e67d32; transform: translateY(-2px); }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar">
+    <div>
+      <h1>Mochi the Chubby Cat 🐾</h1>
+      <p id="sub" style="font-size: 13px; opacity: 0.8;"></p>
+    </div>
+    <div class="hdr-right">
+      <button id="muteBtn" class="btn mute" title="Mute (M)" onclick="toggleMute()">🔊</button>
+      <a href="cat.exe" download class="dl-btn">💻 Download cat.exe</a>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas" width="685" height="350"></canvas>
+
+  <div class="panel-container">
+    <div class="controls">
+      <button class="btn" onclick="feedCat()"><span>🐟</span><span>Treat</span><small>[1]</small></button>
+      <button class="btn" onclick="playCat()"><span>🧶</span><span>Yarn</span><small>[2]</small></button>
+      <button class="btn" onclick="boxCat()"><span>📦</span><span>Box</span><small>[3]</small></button>
+      <button class="btn" onclick="catnipCat()"><span>🌿</span><span>Catnip</span><small>[4]</small></button>
+      <button class="btn" id="laserBtn" onclick="toggleLaser()"><span>🔴</span><span>Laser</span><small>[5]</small></button>
+      <button class="btn" onclick="napCat()"><span>💤</span><span>Nap</span><small>[6]</small></button>
+    </div>
+    <div class="rooms">
+      <button class="btn active-room" id="rm0" onclick="switchRoom(0)"><span>🛋️</span><span>Living Room</span></button>
+      <button class="btn" id="rm1" onclick="switchRoom(1)"><span>🛏️</span><span>Bedroom</span></button>
+      <button class="btn" id="rm2" onclick="switchRoom(2)"><span>🌻</span><span>Garden</span></button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const W = 685, H = 350, dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + "px";
+
+    // --- State Variables ---
+    let lampOn = true;
+    let muted = false;
+    let currentRoom = 0; // 0: Living Room, 1: Bedroom, 2: Garden
+    let laserActive = false;
+    let laserTarget = { x: W/2, y: H/2 };
+
+    let cat = {
+      name: "Mochi", happiness: 88, fullness: 70, energy: 85, weight: 6.2,
+      mood: 0, moodTimer: 0, posX: 215, dirX: 1
+    };
+
+    let animTimer = 0, fishSwim = 0, yarnBounce = 0;
+    let tickCount = 0, alertCooldown = 0, napLeft = 0;
+    let squash = 0, squashPhase = 0, fishJump = 0, fade = 0;
+    let statusMessage = "Mochi happily loafs on her rug. Click the lamp to switch lighting!";
+    let particles = [];
+    let butterflies = Array.from({length: 4}, () => ({x: 100 + Math.random()*400, y: 120 + Math.random()*80, phase: Math.random()*10}));
+    
+    const look = { x: 0, y: 0 };
+    const motes = Array.from({ length: 16 }, (_, i) => ({ x: 150 + (i * 37) % 200, y: (i * 53) % 220, s: 0.4 + (i % 5) * 0.15, p: i * 1.7 }));
+    const btnEls = document.querySelectorAll(".controls .btn");
+    const subEl = document.getElementById("sub"), muteEl = document.getElementById("muteBtn");
+    const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
+
+    // --- Audio System ---
+    let audioCtx = null;
+    function soundBeep(freq, duration, type="sine") {
+      if (muted) return;
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(), t = audioCtx.currentTime;
+        osc.type = type; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + duration);
+      } catch (e) {}
+    }
+
+    function toggleMute() {
+      muted = !muted;
+      muteEl.textContent = muted ? "🔇" : "🔊";
+      statusMessage = muted ? "Sound off. Mochi purrs silently." : "Sound on. Mochi's purrs are back!";
+      soundBeep(880, 0.06);
+    }
+
+    // --- Data Persistence ---
+    const SAVE_KEY = "Ziahu_Ray_Montano_MochiData";
+    function saveGame() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ h: cat.happiness, f: cat.fullness, e: cat.energy, w: cat.weight, l: lampOn, m: muted, t: Date.now() }));
+      } catch (e) {}
+    }
+    
+    function loadGame() {
+      try {
+        const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+        if (!d || ![d.h, d.f, d.e, d.w, d.t].every(Number.isFinite)) return;
+        cat.happiness = clamp(d.h); cat.fullness = clamp(d.f); cat.energy = clamp(d.e);
+        cat.weight = clamp(d.w, 3, 40);
+        lampOn = d.l !== false; muted = !!d.m;
+        document.body.classList.toggle("dark", !lampOn);
+        muteEl.textContent = muted ? "🔇" : "🔊";
+        const mins = Math.min(600, Math.floor((Date.now() - d.t) / 60000));
+        if (mins >= 5) {
+          cat.fullness = Math.min(cat.fullness, Math.max(15, cat.fullness - Math.floor(mins / 3)));
+          cat.happiness = Math.min(cat.happiness, Math.max(20, cat.happiness - Math.floor(mins / 6)));
+          cat.energy = Math.min(100, cat.energy + Math.floor(mins / 2));
+          statusMessage = "Welcome back! Mochi dozed while you were away and missed you.";
+        }
+      } catch (e) {}
+    }
+
+    // --- Core Logic & Interactions ---
+    function spawnPop(x, y, text, color) {
+      particles.push({ x, y, vy: -1.4, life: 35, text, color });
+      if (cat.mood !== 6) squash = 1;
+    }
+
+    function wakeCat(msg) {
+      cat.mood = 0; cat.moodTimer = 0; napLeft = 0;
+      statusMessage = msg;
+      spawnPop(cat.posX, 125, "!", "#f5aa3c");
+    }
+
+    function chonkTier(w) {
+      return w < 6.5 ? "Fluffy Loaf" : w < 7.5 ? "Chonky" : w < 9 ? "Extra Chonk" : w < 11 ? "Absolute Unit" : "Mega Chonk";
+    }
+
+    function switchRoom(rm) {
+      currentRoom = rm;
+      document.querySelectorAll('.rooms .btn').forEach((b, i) => b.classList.toggle('active-room', i === rm));
+      if (laserActive) toggleLaser(); 
+      fade = 1;
+      soundBeep(400, 0.1, "triangle");
+      if(rm === 0) statusMessage = "Mochi pads into the cozy living room.";
+      if(rm === 1) statusMessage = "Mochi hops onto the soft bedroom sheets.";
+      if(rm === 2) statusMessage = lampOn ? "Mochi enjoys the fresh garden breeze." : "Fireflies dance in the garden night.";
+    }
+
+    function toggleLamp() {
+      lampOn = !lampOn;
+      document.body.classList.toggle("dark", !lampOn);
+      fade = 1;
+      soundBeep(1100, 0.04); setTimeout(() => soundBeep(800, 0.05), 50);
+      if (lampOn) {
+        statusMessage = "*Click!* Warm morning light fills the room. Good morning, Mochi!";
+        spawnPop(cat.posX, 150, "LIGHTS ON", "#ffc83c");
+      } else {
+        statusMessage = "*Click!* Cozy dark mode activated. The moon and stars shine outside.";
+        spawnPop(cat.posX, 150, "DARK MODE", "#a0b4f0");
+      }
+    }
+
+    function toggleLaser() {
+      if (cat.energy < 15) {
+        statusMessage = "Mochi is too tired for the laser. Time for a nap.";
+        return;
+      }
+      laserActive = !laserActive;
+      document.getElementById("laserBtn").classList.toggle("laser-active", laserActive);
+      if (laserActive) {
+        cat.mood = 7; cat.moodTimer = 9999;
+        statusMessage = "🔴 Laser activated! Move your mouse to guide Mochi.";
+      } else {
+        cat.mood = 0; cat.moodTimer = 0;
+        statusMessage = "Laser deactivated. Mochi catches her breath.";
+      }
+    }
+
+    function feedCat() {
+      if (cat.fullness >= 95) {
+        statusMessage = "Mochi pats her round belly. Fully packed with salmon!";
+        spawnPop(cat.posX, 135, "FULL!", "#eb8c3c");
+      } else {
+        cat.fullness = Math.min(100, cat.fullness + 20);
+        cat.happiness = Math.min(100, cat.happiness + 10);
+        cat.weight += 0.15; cat.mood = 4; cat.moodTimer = 60;
+        spawnPop(cat.posX, 135, "🐟 YUM!", "#ff7a62");
+        statusMessage = "*Crunch crunch!* Mochi ate fresh salmon & shrimp! (+0.15 kg Chonk)";
+        soundBeep(440, 0.1);
+      }
+    }
+
+    function playCat() {
+      if (cat.energy < 20) {
+        statusMessage = "Mochi is out of battery. She needs a warm catnap.";
+        spawnPop(cat.posX, 135, "TIRED", "#999");
+      } else {
+        if (currentRoom !== 0) switchRoom(0); // Yarn is in living room
+        cat.energy = Math.max(0, cat.energy - 25);
+        cat.weight = Math.max(4, cat.weight - 0.03);
+        cat.fullness = Math.max(0, cat.fullness - 15);
+        cat.happiness = Math.min(100, cat.happiness + 20);
+        cat.mood = 1; cat.moodTimer = 50; yarnBounce = 20;
+        statusMessage = "Mochi batted the pink yarn ball and did a cute somersault!";
+        spawnPop(cat.posX, 125, "POUNCE!", "#ff5fa0");
+        soundBeep(880, 0.08);
+      }
+    }
+
+    function boxCat() {
+      cat.mood = 3; cat.moodTimer = 100; cat.happiness = Math.min(100, cat.happiness + 15);
+      statusMessage = "If it fits, I sits! Her round fur spills over the box rim.";
+      spawnPop(cat.posX, 125, "I SITS!", "#af7d4b");
+      soundBeep(320, 0.12);
+    }
+
+    function catnipCat() {
+      cat.mood = 5; cat.moodTimer = 110; cat.energy = 100; cat.happiness = 100;
+      statusMessage = "🌿 CATNIP PARTY! Mochi's emerald eyes went completely wide!";
+      spawnPop(cat.posX, 115, "HYPER!!", "#5ac373");
+      soundBeep(600, 0.05, "square"); setTimeout(() => soundBeep(900, 0.08, "square"), 60);
+    }
+
+    function zoomiesCat() {
+      // Replaced by Laser in UI, but kept logic intact if called via keyboard (5)
+      toggleLaser();
+    }
+
+    function napCat() {
+      cat.mood = 6; cat.moodTimer = 0; napLeft = 5;
+      cat.fullness = Math.max(0, cat.fullness - 5);
+      if (currentRoom !== 1) switchRoom(1); // Force to bedroom for nap
+      statusMessage = "Mochi curled into a round loaf and drifted off to sleep. Click her to wake her up.";
+      spawnPop(cat.posX, 125, "zzz...", "#78b4f0");
+      soundBeep(260, 0.2);
+    }
+
+    function tickNeeds() {
+      tickCount++;
+      if (cat.mood === 6) {
+        cat.energy = Math.min(100, cat.energy + 4);
+        if (napLeft > 0) napLeft--;
+        spawnPop(cat.posX + 45, 150, tickCount % 2 ? "z" : "Z", "#78b4f0");
+        if (cat.energy >= 100 && napLeft <= 0) wakeCat("Mochi woke up from her nap, fully recharged!");
+      } else {
+        if (tickCount % 3 === 0) cat.fullness = Math.max(0, cat.fullness - 1);
+        if (tickCount % 5 === 0) cat.energy = Math.max(0, cat.energy - 1);
+        if (tickCount % 4 === 0 && cat.fullness < 40) cat.happiness = Math.max(0, cat.happiness - (cat.fullness < 15 ? 2 : 1));
+        if (cat.mood === 0) {
+          if (cat.energy <= 10) napCat();
+          else if (cat.fullness < 25 && alertCooldown <= 0) {
+            statusMessage = "Mochi's tummy is rumbling... maybe a salmon treat?";
+            spawnPop(cat.posX, 125, "MEOW!", "#eb8c3c");
+            soundBeep(880, 0.08); alertCooldown = 20;
+          }
+        }
+      }
+      if (alertCooldown > 0) alertCooldown--;
+      if (tickCount % 30 === 0) saveGame();
+    }
+
+    // --- Drawing Functions ---
+    function rg(x, y, r, c0, c1) {
+      const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.4, r * 0.1, x, y, r);
+      g.addColorStop(0, c0); g.addColorStop(1, c1); return g;
+    }
+
+    function drawFish(x, y, dir, ang, t) {
+      ctx.save();
+      ctx.translate(x, y); ctx.rotate(ang); ctx.scale(dir * 1.15, 1.15);
+      const wag = Math.sin(t * 9);
+      ctx.fillStyle = "rgba(255,130,50,.85)";
+      ctx.beginPath(); ctx.moveTo(-6, 0); ctx.quadraticCurveTo(-11, -8, -17, -9 + wag * 6);
+      ctx.quadraticCurveTo(-12, wag * 3, -17, 9 + wag * 6); ctx.quadraticCurveTo(-11, 8, -6, 0); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-3, -4.5); ctx.quadraticCurveTo(0, -12 + wag, 6, -4.5); ctx.fill();
+      const g = ctx.createLinearGradient(0, -6, 0, 6);
+      g.addColorStop(0, "#ff7a2a"); g.addColorStop(0.6, "#ffa650"); g.addColorStop(1, "#ffd9a8");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(0, 0, 9.5, 6, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(190,70,10,.35)"; ctx.lineWidth = 0.8;
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(-3 + i * 3.2, 0.5, 2.6, -1.1, 1.1); ctx.stroke(); }
+      ctx.beginPath(); ctx.arc(3.5, 0, 4.4, -0.9, 0.9); ctx.stroke();
+      ctx.fillStyle = "rgba(255,150,70,.9)";
+      ctx.beginPath(); ctx.ellipse(0.5, 2.6, 3.4, 1.5, 0.5 + Math.sin(t * 7) * 0.4, 0, 7); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(5.3, -1.6, 2.1, 0, 7); ctx.fill();
+      ctx.fillStyle = "#14101a"; ctx.beginPath(); ctx.arc(5.7, -1.5, 1.1, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.ellipse(-1, -3, 4, 1.4, -0.1, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawAquarium() {
+      const bx = 90, by = 216, rx = 30, ry = 27, t = animTimer;
+      let g = ctx.createLinearGradient(0, 238, 0, 282);
+      g.addColorStop(0, lampOn ? "#b98660" : "#5a3624"); g.addColorStop(1, lampOn ? "#8f5f3e" : "#3a2216");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(62, 238, 56, 44, 5); ctx.fill();
+
+      ctx.save();
+      ctx.beginPath(); ctx.ellipse(bx, by, rx, ry, 0, 0, 7); ctx.clip();
+      g = ctx.createLinearGradient(0, by - ry, 0, by + ry);
+      g.addColorStop(0, lampOn ? "#d4f1ff" : "#4c7897"); g.addColorStop(1, lampOn ? "#7cc4ea" : "#274a68");
+      ctx.fillStyle = g; ctx.fillRect(bx - rx, by - ry + 4, rx * 2, ry * 2);
+      ctx.fillStyle = lampOn ? "#e9d3a4" : "#6b5a46";
+      ctx.beginPath(); ctx.ellipse(bx, by + ry - 3, rx, 8, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = lampOn ? "#c9a878" : "#4d3f32";
+      [[-14, 21], [6, 23], [16, 20]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(bx + dx, by + dy - 2, 2.2, 0, 7); ctx.fill(); });
+      ctx.strokeStyle = lampOn ? "#4b985c" : "#2f6b45"; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+      [[-16, 0, 26], [-11, 1.3, 22], [17, 2.1, 20]].forEach(([dx, ph, h]) => {
+        const wx = bx + dx, wy = by + ry - 5, s = Math.sin(t * 1.6 + ph);
+        ctx.beginPath(); ctx.moveTo(wx, wy);
+        ctx.bezierCurveTo(wx + s * 5, wy - h * 0.4, wx - s * 5, wy - h * 0.7, wx + Math.sin(t * 1.6 + ph + 1) * 4, wy - h);
+        ctx.stroke();
+      });
+      if (fishJump === 0) {
+        const dir = Math.max(-1, Math.min(1, Math.cos(fishSwim) * 4));
+        drawFish(bx + Math.sin(fishSwim) * 13, by - 2 + Math.cos(fishSwim * 1.6) * 6, dir, Math.cos(fishSwim * 1.6) * 0.1, t);
+      }
+      for (let i = 0; i < 3; i++) {
+        const k = (t * 0.6 + i * 0.37) % 1;
+        ctx.fillStyle = "rgba(255,255,255," + 0.7 * (1 - k) + ")";
+        ctx.beginPath(); ctx.arc(bx + 8 + Math.sin(k * 9 + i) * 3, by + 16 - k * 34, 1.2 + i * 0.5, 0, 7); ctx.fill();
+      }
+      ctx.restore();
+
+      if (fishJump > 0) {
+        const k = fishJump, arcY = by - ry + 6 - Math.sin(Math.PI * k) * 50;
+        drawFish(bx - 12 + k * 24, arcY, 1, -0.9 + k * 6.28 * 0.5, t);
+        ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 1.5;
+        const rr = 4 + 16 * Math.min(k, 1 - k) * 2;
+        ctx.beginPath(); ctx.ellipse(bx, by - ry + 6, rr, rr * 0.3, 0, 0, 7); ctx.stroke();
+      }
+      ctx.strokeStyle = lampOn ? "rgba(255,255,255,.9)" : "rgba(170,200,230,.5)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(bx, by, rx, ry, 0, 0, 7); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.65)"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(bx, by, ry - 6, Math.PI * 1.1, Math.PI * 1.4); ctx.stroke();
+    }
+
+    function drawEye(ex, ey) {
+      const ox = look.x * 3, oy = look.y * 2.5;
+      const g = ctx.createRadialGradient(ex, ey - 3, 1, ex, ey, 11);
+      g.addColorStop(0, "#c8f5b0"); g.addColorStop(0.55, "#5cc480"); g.addColorStop(1, "#2a8a55");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(ex, ey, 10, 12, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#1e1819";
+      ctx.beginPath(); ctx.ellipse(ex + ox, ey + oy, lampOn ? 3.5 : 6, 9, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(ex + ox - 3, ey + oy - 4, 2.8, 0, 7); ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath(); ctx.arc(ex + ox + 3, ey + oy + 4, 1.4, 0, 7); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    function drawLighting() {
+      const t = animTimer;
+      if (currentRoom === 0) {
+        let g = ctx.createLinearGradient(140, 40, 330, 300);
+        g.addColorStop(0, lampOn ? "rgba(255,238,170,.34)" : "rgba(150,175,255,.18)");
+        g.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(140, 30); ctx.lineTo(140, 115); ctx.lineTo(350, 310); ctx.lineTo(200, 310); ctx.closePath(); ctx.fill();
+
+        for (const m of motes) {
+          const x = m.x + Math.sin(t * m.s + m.p) * 14;
+          const y = 70 + (((m.y - t * 10 * m.s) % 220) + 220) % 220;
+          ctx.fillStyle = (lampOn ? "rgba(255,246,200," : "rgba(190,205,255,") + (0.25 + 0.25 * Math.sin(t * 2 + m.p)) + ")";
+          ctx.beginPath(); ctx.arc(x, y, 1.6, 0, 7); ctx.fill();
+        }
+
+        if (lampOn) {
+          g = ctx.createRadialGradient(390, 112, 4, 390, 112, 70);
+          g.addColorStop(0, "rgba(255,236,150,.38)"); g.addColorStop(1, "rgba(255,236,150,0)");
+          ctx.fillStyle = g; ctx.fillRect(320, 40, 140, 140);
+        } else {
+          [[60, 38], [78, 90], [105, 75], [125, 102], [70, 62]].forEach(([sx, sy], i) => {
+            ctx.fillStyle = "rgba(255,255,255," + (0.45 + 0.55 * Math.sin(t * 3 + i * 2)) + ")";
+            ctx.fillRect(sx, sy, 2, 2);
+          });
+          g = ctx.createRadialGradient(115, 45, 6, 115, 45, 45);
+          g.addColorStop(0, "rgba(245,240,190,.3)"); g.addColorStop(1, "rgba(245,240,190,0)");
+          ctx.fillStyle = g; ctx.fillRect(60, 0, 110, 100);
+        }
+      }
+
+      let g = ctx.createRadialGradient(W / 2, H / 2, 150, W / 2, H / 2, 430);
+      g.addColorStop(0, "rgba(0,0,0,0)");
+      g.addColorStop(1, lampOn ? "rgba(110,60,20,.14)" : "rgba(0,0,12,.5)");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+
+    function drawRoom0() {
+      let g = ctx.createLinearGradient(0, 0, 0, 175);
+      g.addColorStop(0, lampOn ? "#fffaf3" : "#262036"); g.addColorStop(1, lampOn ? "#f6e8d8" : "#1c1826");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, 175);
+      g = ctx.createLinearGradient(0, 175, 0, 350);
+      g.addColorStop(0, lampOn ? "#e8c298" : "#382c28"); g.addColorStop(1, lampOn ? "#d6a876" : "#241c1a");
+      ctx.fillStyle = g; ctx.fillRect(0, 175, W, 175);
+      
+      ctx.strokeStyle = lampOn ? "rgba(140,90,50,.22)" : "rgba(0,0,0,.28)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let y = 203; y < 350; y += 28) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+      for (let r = 0; r < 6; r++) for (let x = (r % 2) * 60 + 30; x < W; x += 120) { ctx.moveTo(x, 175 + r * 28); ctx.lineTo(x, 203 + r * 28); }
+      ctx.stroke();
+
+      ctx.strokeStyle = lampOn ? "#bc8e66" : "#221a18"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, 175); ctx.lineTo(W, 175); ctx.stroke();
+
+      // Window
+      g = ctx.createLinearGradient(0, 20, 0, 115);
+      g.addColorStop(0, lampOn ? "#96d0f8" : "#0c0e1c"); g.addColorStop(1, lampOn ? "#d6eefc" : "#1e203c");
+      ctx.fillStyle = g; ctx.fillRect(45, 20, 95, 95);
+      if (lampOn) {
+        ctx.save(); ctx.beginPath(); ctx.rect(45, 20, 95, 95); ctx.clip();
+        ctx.fillStyle = "rgba(255,255,255,.85)";
+        [[0, 38, 1], [80, 78, 0.7]].forEach(([o, y, s]) => {
+          const x = ((animTimer * 6 * s + o) % 160) - 30 + 45;
+          ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.arc(x + 9, y - 4, 10, 0, 7); ctx.arc(x + 19, y, 8, 0, 7); ctx.fill();
+        });
+        ctx.restore();
+        ctx.fillStyle = "#ffeb78"; ctx.beginPath(); ctx.arc(115, 45, 16, 0, 7); ctx.fill();
+      } else {
+        ctx.fillStyle = "#f5f0be"; ctx.beginPath(); ctx.arc(115, 45, 13, 0, 7); ctx.fill();
+        ctx.fillStyle = "#111428"; ctx.beginPath(); ctx.arc(110, 45, 13, 0, 7); ctx.fill();
+      }
+      ctx.strokeStyle = lampOn ? "#fff" : "#554b5f"; ctx.lineWidth = 4; ctx.strokeRect(45, 20, 95, 95);
+      ctx.beginPath(); ctx.moveTo(92, 20); ctx.lineTo(92, 115); ctx.moveTo(45, 67); ctx.lineTo(140, 67); ctx.stroke();
+
+      // Curtains
+      ctx.fillStyle = lampOn ? "#eea0a0" : "#5c3e60";
+      ctx.beginPath(); ctx.moveTo(29, 14); ctx.lineTo(57, 14); ctx.lineTo(51, 121); ctx.lineTo(25, 121);
+      ctx.moveTo(128, 14); ctx.lineTo(156, 14); ctx.lineTo(160, 121); ctx.lineTo(134, 121); ctx.fill();
+      ctx.strokeStyle = lampOn ? "#b08260" : "#46363c"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(21, 12); ctx.lineTo(164, 12); ctx.stroke();
+
+      // Rug
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,.25)"; ctx.shadowBlur = 14; ctx.shadowOffsetY = 4;
+      g = ctx.createRadialGradient(225, 245, 10, 225, 250, 130);
+      g.addColorStop(0, lampOn ? "#ffe6cc" : "#5c3a52"); g.addColorStop(1, lampOn ? "#ffcfa4" : "#432b3c");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(225, 250, 130, 60, 0, 0, 7); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = lampOn ? "#fff0e1" : "#6b4a5e"; ctx.lineWidth = 3; ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = lampOn ? "rgba(235,150,120,.45)" : "rgba(255,180,200,.2)";
+      ctx.beginPath(); ctx.ellipse(225, 250, 100, 44, 0, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(225, 250, 68, 28, 0, 0, 7); ctx.stroke();
+
+      drawAquarium();
+
+      // Bowl
+      const bx = 345, by = 250;
+      ctx.fillStyle = "#afb4bc"; ctx.beginPath(); ctx.ellipse(bx, by, 24, 12, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#8e949e"; ctx.beginPath(); ctx.ellipse(bx, by, 19, 9, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ff7a62"; ctx.beginPath(); ctx.ellipse(bx - 4, by, 8, 4, 0, 0, 7); ctx.fill();
+
+      // Yarn
+      const yy = 260 - yarnBounce;
+      ctx.fillStyle = "#ff66a0"; ctx.beginPath(); ctx.arc(120, yy, 13, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#ff66a0"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(128, yy + 8); ctx.lineTo(144, yy + 16); ctx.lineTo(156, yy + 12); ctx.stroke();
+
+      // Lamp
+      const lx = 390;
+      ctx.fillStyle = "#4b3c34"; ctx.beginPath(); ctx.ellipse(lx, 225, 18, 5, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = "#6e5f55"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(lx, 225); ctx.lineTo(lx, 120); ctx.stroke();
+      ctx.fillStyle = lampOn ? "#ffeb96" : "#bea7a0";
+      ctx.beginPath(); ctx.moveTo(lx - 12, 100); ctx.lineTo(lx + 12, 100); ctx.lineTo(lx + 22, 124); ctx.lineTo(lx - 22, 124); ctx.fill();
+    }
+
+    function drawRoom1() {
+      let g = ctx.createLinearGradient(0, 0, 0, 200);
+      g.addColorStop(0, lampOn ? "#e6e6fa" : "#1a1a2e"); g.addColorStop(1, lampOn ? "#d8bfd8" : "#16213e");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, 200);
+      g = ctx.createLinearGradient(0, 200, 0, H);
+      g.addColorStop(0, lampOn ? "#deb887" : "#2d232e"); g.addColorStop(1, lampOn ? "#cdaa7d" : "#1f1820");
+      ctx.fillStyle = g; ctx.fillRect(0, 200, W, H-200);
+      
+      ctx.fillStyle = lampOn ? "#8b4513" : "#3b200b"; ctx.roundRect(120, 150, 280, 50, 8); ctx.fill(); // Headboard
+      ctx.fillStyle = lampOn ? "#fff0f5" : "#4a3b4a"; ctx.roundRect(130, 180, 260, 120, 10); ctx.fill(); // Mattress
+      ctx.fillStyle = lampOn ? "#ffb6c1" : "#5d355d"; ctx.roundRect(130, 230, 260, 70, 10); ctx.fill(); // Blanket
+      ctx.fillStyle = lampOn ? "#fff" : "#aaa"; ctx.roundRect(150, 185, 80, 40, 15); ctx.roundRect(250, 185, 80, 40, 15); ctx.fill(); // Pillows
+      
+      ctx.fillStyle = lampOn ? "#a0522d" : "#4a2511"; ctx.fillRect(440, 210, 60, 80);
+      ctx.fillStyle = lampOn ? "#ffd700" : "#b8860b"; ctx.beginPath(); ctx.arc(470, 195, 15, 0, 7); ctx.fill(); // Clock
+    }
+
+    function drawRoom2() {
+      let g = ctx.createLinearGradient(0, 0, 0, 200);
+      g.addColorStop(0, lampOn ? "#87CEEB" : "#0B0C10"); g.addColorStop(1, lampOn ? "#E0F6FF" : "#1F2833");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, 200);
+      g = ctx.createLinearGradient(0, 200, 0, H);
+      g.addColorStop(0, lampOn ? "#7CFC00" : "#1E3B20"); g.addColorStop(1, lampOn ? "#228B22" : "#0E1A0F");
+      ctx.fillStyle = g; ctx.fillRect(0, 200, W, H-200);
+
+      ctx.fillStyle = lampOn ? "#DEB887" : "#4B382A";
+      for (let i = -10; i < W; i += 60) {
+        ctx.beginPath(); ctx.moveTo(i+10, 200); ctx.lineTo(i+25, 160); ctx.lineTo(i+40, 200); ctx.fill();
+        ctx.fillRect(i+10, 200, 30, 60);
+      }
+      ctx.fillRect(0, 190, W, 10); ctx.fillRect(0, 230, W, 10);
+
+      if (lampOn) {
+        ctx.fillStyle = "#FF69B4";
+        for (let i=0; i<5; i++) { ctx.beginPath(); ctx.arc(50 + i*120, 280 + Math.sin(i)*20, 8, 0, 7); ctx.fill(); }
+        butterflies.forEach(b => {
+          b.x += Math.sin(animTimer + b.phase) * 2; b.y += Math.cos(animTimer*2 + b.phase);
+          if (b.x > W) b.x = -20; if (b.x < -20) b.x = W;
+          ctx.fillStyle = "#FFFACD";
+          let wing = Math.abs(Math.sin(animTimer*10 + b.phase)) * 8;
+          ctx.fillRect(b.x, b.y, wing, 10); ctx.fillRect(b.x - wing, b.y, wing, 10);
+        });
+      } else {
+        ctx.fillStyle = "rgba(255, 255, 150, 0.8)";
+        butterflies.forEach(b => {
+          b.x += Math.sin(animTimer*0.5 + b.phase); b.y += Math.cos(animTimer + b.phase)*0.5;
+          ctx.beginPath(); ctx.arc(b.x, b.y, 2 + Math.abs(Math.sin(animTimer*3+b.phase))*2, 0, 7); ctx.fill();
+        });
+      }
+    }
+
+    function drawCat(cx, cy) {
+      const hopY = (cat.mood === 1 || cat.mood === 5) ? Math.abs(Math.sin(animTimer * 9)) * 9 : 0;
+      let g = ctx.createRadialGradient(cx, cy, 5, cx, cy, 100);
+      g.addColorStop(0, lampOn ? "rgba(90,50,20,.32)" : "rgba(0,0,0,.5)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.save();
+      ctx.translate(cx, cy); ctx.scale(1 - hopY / 40, 0.16); ctx.translate(-cx, -cy);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 100, 0, 7); ctx.fill();
+      ctx.restore();
+      
+      ctx.save();
+      ctx.translate(0, -hopY);
+      const sq = Math.sin(squashPhase) * squash;
+      ctx.translate(cx, cy); ctx.scale(1 + 0.07 * sq, 1 - 0.07 * sq); ctx.translate(-cx, -cy);
+      
+      const blink = animTimer % 5.3 < 0.2;
+      const breathe = Math.sin(animTimer * 2.2) * 3;
+      const tailWag = Math.sin(animTimer * (cat.mood === 2 || cat.mood === 5 || cat.mood === 7 ? 7.5 : 2.5)) * 12;
+
+      if (cat.mood !== 3) {
+        ctx.strokeStyle = "#fca84c"; ctx.lineWidth = 14; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(cx + 45, cy - 51); ctx.lineTo(cx + 80 + tailWag, cy - 81); ctx.stroke();
+        ctx.fillStyle = rg(cx, cy - 66 + breathe, 72, "#ffc880", "#ee8e2a");
+        ctx.beginPath(); ctx.ellipse(cx, cy - 66 + breathe, 72, 60, 0, 0, 7); ctx.fill();
+        ctx.strokeStyle = "rgba(150,70,10,.3)"; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = "#d67024"; ctx.lineWidth = 4; ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(cx - 60, cy - 86 + breathe); ctx.lineTo(cx - 44, cy - 80 + breathe);
+        ctx.moveTo(cx - 64, cy - 68 + breathe); ctx.lineTo(cx - 46, cy - 64 + breathe);
+        ctx.moveTo(cx + 60, cy - 86 + breathe); ctx.lineTo(cx + 44, cy - 80 + breathe);
+        ctx.moveTo(cx + 64, cy - 68 + breathe); ctx.lineTo(cx + 46, cy - 64 + breathe);
+        ctx.stroke();
+        ctx.fillStyle = rg(cx, cy - 56 + breathe, 45, "#fffaf0", "#ffdfc0");
+        ctx.beginPath(); ctx.ellipse(cx, cy - 56 + breathe, 44, 45, 0, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx - 22, cy - 21 + breathe, 14, 10, 0, 0, 7); ctx.ellipse(cx + 22, cy - 21 + breathe, 14, 10, 0, 0, 7); ctx.fill();
+      } else {
+        ctx.fillStyle = "#c6945c"; ctx.beginPath(); ctx.roundRect(cx - 85, cy - 74, 170, 85, 10); ctx.fill();
+        ctx.strokeStyle = "#916639"; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = "#e6c08c"; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(cx - 40, cy - 36); ctx.lineTo(cx + 40, cy - 36); ctx.stroke();
+        ctx.fillStyle = "#fff0de";
+        ctx.beginPath(); ctx.ellipse(cx - 32, cy - 68, 15, 10, 0, 0, 7); ctx.ellipse(cx + 32, cy - 68, 15, 10, 0, 0, 7); ctx.fill();
+      }
+
+      ctx.fillStyle = "#fca84c";
+      ctx.beginPath(); ctx.moveTo(cx - 45, cy - 116); ctx.lineTo(cx - 25, cy - 151); ctx.lineTo(cx - 10, cy - 118);
+      ctx.moveTo(cx + 10, cy - 118); ctx.lineTo(cx + 25, cy - 151); ctx.lineTo(cx + 45, cy - 116); ctx.fill();
+      ctx.fillStyle = "#ff96a5";
+      ctx.beginPath(); ctx.moveTo(cx - 38, cy - 116); ctx.lineTo(cx - 25, cy - 141); ctx.lineTo(cx - 15, cy - 118);
+      ctx.moveTo(cx + 15, cy - 118); ctx.lineTo(cx + 25, cy - 141); ctx.lineTo(cx + 38, cy - 116); ctx.fill();
+
+      ctx.fillStyle = rg(cx, cy - 106, 52, "#ffc880", "#f09030");
+      ctx.beginPath(); ctx.ellipse(cx, cy - 106, 52, 42, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(150,70,10,.3)"; ctx.lineWidth = 2; ctx.stroke();
+
+      ctx.strokeStyle = "#d67024"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(cx - 14, cy - 136); ctx.lineTo(cx - 10, cy - 126); ctx.lineTo(cx, cy - 131); ctx.lineTo(cx + 10, cy - 126); ctx.lineTo(cx + 14, cy - 136); ctx.stroke();
+
+      ctx.fillStyle = "#fff0de"; ctx.beginPath(); ctx.ellipse(cx, cy - 94, 22, 12, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#ff96a5"; ctx.beginPath(); ctx.moveTo(cx - 5, cy - 98); ctx.lineTo(cx + 5, cy - 98); ctx.lineTo(cx, cy - 92); ctx.fill();
+
+      if (cat.happiness >= 80 || cat.mood === 4) {
+        ctx.fillStyle = "rgba(255,130,120,0.55)";
+        ctx.beginPath(); ctx.ellipse(cx - 42, cy - 96, 8, 5, 0, 0, 7); ctx.ellipse(cx + 42, cy - 96, 8, 5, 0, 0, 7); ctx.fill();
+      }
+      ctx.strokeStyle = "#483026"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx - 22, cy - 96); ctx.lineTo(cx - 58, cy - 102); ctx.moveTo(cx - 22, cy - 91); ctx.lineTo(cx - 56, cy - 86);
+      ctx.moveTo(cx + 22, cy - 96); ctx.lineTo(cx + 58, cy - 102); ctx.moveTo(cx + 22, cy - 91); ctx.lineTo(cx + 56, cy - 86); ctx.stroke();
+
+      if (cat.mood === 5 || cat.mood === 7) {
+        ctx.fillStyle = "#1e1819";
+        ctx.beginPath(); ctx.ellipse(cx - 22, cy - 110, 11, 13, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(cx + 22, cy - 110, 11, 13, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.beginPath(); ctx.arc(cx - 26, cy - 115, 3.5, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(cx + 18, cy - 115, 3.5, 0, 7); ctx.fill();
+      } else if (cat.mood === 4 || cat.mood === 6 || blink) {
+        ctx.strokeStyle = "#483026"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(cx - 28, cy - 108); ctx.lineTo(cx - 14, cy - 108); ctx.moveTo(cx + 14, cy - 108); ctx.lineTo(cx + 28, cy - 108); ctx.stroke();
+      } else {
+        drawEye(cx - 22, cy - 110); drawEye(cx + 22, cy - 110);
+      }
+      ctx.restore();
+    }
+
+    function drawMeter(x, y, w, h, val, color, label) {
+      ctx.fillStyle = lampOn ? "#483026" : "#f5ebe1";
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.fillText(label, x, y - 6); ctx.fillText(`${val}%`, x + w - 30, y - 6);
+      ctx.fillStyle = lampOn ? "rgba(120,90,70,.15)" : "rgba(255,255,255,.1)";
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, 4); ctx.fill();
+      ctx.fillStyle = val < 25 ? "#e85454" : color;
+      ctx.beginPath(); ctx.roundRect(x, y, val > 0 ? Math.max(8, (w * val) / 100) : 0, h, 4); ctx.fill();
+      if (val > 0) {
+        ctx.fillStyle = "rgba(255,255,255,.35)";
+        ctx.beginPath(); ctx.roundRect(x + 2, y + 1, Math.max(4, (w * val) / 100 - 4), h / 3, 2); ctx.fill();
+      }
+    }
+
+    function render() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+
+      if (currentRoom === 0) drawRoom0();
+      else if (currentRoom === 1) drawRoom1();
+      else if (currentRoom === 2) drawRoom2();
+
+      drawCat(cat.posX, 286);
+      drawLighting();
+
+      // HUD 
+      ctx.save();
+      ctx.shadowColor = "rgba(60,30,10,.22)"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 6;
+      ctx.fillStyle = lampOn ? "rgba(255,255,255,.84)" : "rgba(40,32,58,.8)";
+      ctx.strokeStyle = lampOn ? "#ecd4be" : "#4b3c55"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(435, 75, 225, 150, 16); ctx.fill(); ctx.stroke();
+      ctx.restore();
+
+      drawMeter(450, 110, 195, 8, cat.happiness, "#ff7a94", "Happiness ♥");
+      drawMeter(450, 150, 195, 8, cat.fullness, "#ffa444", "Fullness 🐟");
+      drawMeter(450, 190, 195, 8, cat.energy, "#6ecaee", "Energy ⚡");
+
+      // Status Bubble
+      ctx.fillStyle = lampOn ? "rgba(255,255,255,.86)" : "rgba(40,32,58,.82)";
+      ctx.beginPath(); ctx.roundRect(40, 298, 605, 36, 12); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = lampOn ? "#483026" : "#f5ebe1"; ctx.font = "13px system-ui, sans-serif";
+      ctx.fillText(statusMessage, 54, 321);
+
+      if (laserActive) {
+        ctx.fillStyle = "rgba(255, 0, 0, 0.8)";
+        ctx.beginPath(); ctx.arc(laserTarget.x, laserTarget.y, 5 + Math.random()*2, 0, 7); ctx.fill();
+        ctx.shadowColor = "red"; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
+      }
+
+      if (fade > 0.01) {
+        ctx.fillStyle = lampOn ? "rgba(255,244,214," + fade * 0.5 + ")" : "rgba(10,10,30," + fade * 0.6 + ")";
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i]; p.y += p.vy; p.life--;
+        ctx.globalAlpha = Math.min(1, p.life / 15);
+        ctx.font = "bold 15px system-ui, sans-serif"; ctx.lineJoin = "round"; ctx.lineWidth = 3;
+        ctx.strokeStyle = lampOn ? "rgba(255,255,255,.85)" : "rgba(20,14,30,.8)";
+        ctx.strokeText(p.text, p.x, p.y);
+        ctx.fillStyle = p.color; ctx.fillText(p.text, p.x, p.y);
+        ctx.globalAlpha = 1;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function loop() {
+      animTimer += 0.04; fishSwim += 0.05;
+      squash *= 0.92; squashPhase += 0.55; fade *= 0.93;
+      if (fishJump > 0) { fishJump += 0.022; if (fishJump >= 1) fishJump = 0; }
+      
+      if (cat.mood === 2) {
+        cat.posX += cat.dirX * 8.5;
+        if (cat.posX > 275) cat.dirX = -1;
+        if (cat.posX < 135) cat.dirX = 1;
+      } else if (cat.mood === 7 && laserActive) {
+        if (cat.energy > 0 && Math.random() < 0.1) cat.energy -= 0.5;
+        cat.posX += (laserTarget.x - cat.posX) * 0.05;
+      } else if (currentRoom === 1 && cat.mood === 6) {
+        cat.posX += (250 - cat.posX) * 0.1; // Bed
+      } else {
+        cat.posX += (215 - cat.posX) * 0.1; // Rug center
+      }
+      
+      btnEls[1].classList.toggle("dim", cat.energy < 20);
+      btnEls[4].classList.toggle("dim", cat.energy < 15);
+      const sub = chonkTier(cat.weight) + " \u2022 " + cat.weight.toFixed(2) + " kg | Click the lamp for day/night \u2022 Keys 1-6 \u2022 M = mute";
+      if (subEl.textContent !== sub) subEl.textContent = sub;
+      
+      if (yarnBounce > 0) yarnBounce = Math.max(0, yarnBounce - 0.8);
+      if (cat.moodTimer > 0) {
+        cat.moodTimer--;
+        if (cat.moodTimer <= 0 && laserActive && cat.mood === 7) cat.moodTimer = 9999;
+        else if (cat.moodTimer <= 0) cat.mood = 0;
+      }
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    // --- Events ---
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) * W / rect.width, my = (e.clientY - rect.top) * H / rect.height, cx = cat.posX;
+
+      if (cat.mood === 6 && Math.abs(mx - cx) < 85 && my > 135 && my < 280) {
+        wakeCat("Mochi stretched, yawned, and blinked up at you."); return;
+      }
+      if (currentRoom === 0) {
+        if (mx >= 370 && mx <= 420 && my >= 90 && my <= 230) toggleLamp();
+        else if (mx >= 45 && mx <= 115 && my >= 160 && my <= 250) {
+          spawnPop(80, 160, "SPLASH! 🐠", "#4baff5");
+          if (!fishJump) fishJump = 0.01;
+          statusMessage = "🐠 The goldfish did a flip! Mochi's emerald eyes lit up."; soundBeep(600, 0.08);
+        } else if (mx >= 115 && mx <= 155 && my >= 220 && my <= 260) {
+          yarnBounce = 22; spawnPop(135, 220, "BOING!", "#ff69a0");
+          statusMessage = "🧶 You flicked the pink yarn ball across the floorboards!"; soundBeep(750, 0.06);
+        } else if (mx >= 320 && mx <= 365 && my >= 210 && my <= 255) feedCat();
+      }
+      if (Math.abs(mx - cx) < 16 && Math.abs(my - 198) < 12) {
+        spawnPop(cx, 180, "BOOP! ♥", "#ff82a0");
+        statusMessage = "👉 *BOOP!* You tapped her soft pink button nose!"; soundBeep(880, 0.08);
+      } else if (Math.abs(mx - cx) < 40 && my > 210 && my < 265) {
+        if (Math.random() < 0.3) {
+          statusMessage = "😼 TRAP! Mochi playfully bunny-kicked your hand!";
+          spawnPop(cx, 220, "NIP!", "#e65050"); soundBeep(220, 0.12, "sawtooth");
+        } else {
+          statusMessage = "Mochi allows warm belly rubs on her soft tummy.";
+          spawnPop(cx, 220, "PURRRR", "#ff78a0"); soundBeep(330, 0.15);
+          cat.mood = 4; cat.moodTimer = 60;
+        }
+      }
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      const r = canvas.getBoundingClientRect();
+      const mx = (e.clientX - r.left) * W / r.width, my = (e.clientY - r.top) * H / r.height, cx = cat.posX;
+      laserTarget.x = mx; laserTarget.y = my;
+      const hot = (currentRoom === 0 && ((mx >= 370 && mx <= 420 && my >= 90 && my <= 230) || 
+                  (mx >= 45 && mx <= 115 && my >= 160 && my <= 250) ||
+                  (mx >= 115 && mx <= 155 && my >= 220 && my <= 260) || 
+                  (mx >= 320 && mx <= 365 && my >= 210 && my <= 255))) ||
+                  (Math.abs(mx - cx) < 60 && my > 135 && my < 280);
+      canvas.style.cursor = hot ? "pointer" : "default";
+      look.x = clamp((mx - cx) / 150, -1, 1); look.y = clamp((my - 180) / 100, -1, 1);
+    });
+
+    const actions = [feedCat, playCat, boxCat, catnipCat, toggleLaser, napCat];
+    document.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key >= "1" && e.key <= "6") actions[e.key - 1]();
+      else if (e.key === "l" || e.key === "L") toggleLamp();
+      else if (e.key === "m" || e.key === "M") toggleMute();
+    });
+
+    window.addEventListener("beforeunload", saveGame);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) saveGame(); });
+    setInterval(tickNeeds, 1000);
+    loadGame();
+    loop();
+  </script>
+</body>
+</html>
