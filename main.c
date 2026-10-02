@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <stdbool.h>
+#include <string.h>
+#include <wchar.h>
 
 #define TIMER_ANIM 1
 
@@ -67,6 +70,61 @@
 #define COLOR_BAR_FOOD       RGB(255, 164, 68)
 #define COLOR_BAR_ENERGY     RGB(110, 202, 238)
 
+// ---------------------------------------------------------------------------
+// GDI object cache: pens/brushes are created once per distinct style/color and
+// reused every frame (no per-frame allocation, and nothing is ever deleted
+// while still selected into a DC). The macros below route the existing
+// Create*/DeleteObject calls through the cache.
+// ---------------------------------------------------------------------------
+#define GDI_CACHE_MAX 256
+typedef struct { int kind; int style; int width; COLORREF color; HGDIOBJ obj; } GdiEntry;
+static GdiEntry gdiCache[GDI_CACHE_MAX];
+static int gdiCount = 0;
+
+static HGDIOBJ gdiLookup(int kind, int style, int width, COLORREF color) {
+    for (int i = 0; i < gdiCount; i++) {
+        GdiEntry* e = &gdiCache[i];
+        if (e->kind == kind && e->style == style && e->width == width && e->color == color) return e->obj;
+    }
+    HGDIOBJ o = (kind == 0) ? (HGDIOBJ)CreateSolidBrush(color) : (HGDIOBJ)CreatePen(style, width, color);
+    if (o && gdiCount < GDI_CACHE_MAX) {
+        GdiEntry e = { kind, style, width, color, o };
+        gdiCache[gdiCount++] = e;
+    }
+    return o;
+}
+static HBRUSH cachedBrush(COLORREF c) { return (HBRUSH)gdiLookup(0, 0, 0, c); }
+static HPEN cachedPen(int style, int width, COLORREF c) { return (HPEN)gdiLookup(1, style, width, c); }
+static BOOL cachedDelete(HGDIOBJ o) {
+    for (int i = 0; i < gdiCount; i++) if (gdiCache[i].obj == o) return TRUE;
+    return DeleteObject(o);
+}
+static void freeGdiCache(void) {
+    for (int i = 0; i < gdiCount; i++) DeleteObject(gdiCache[i].obj);
+    gdiCount = 0;
+}
+#define CreateSolidBrush(c) cachedBrush(c)
+#define CreatePen(s, w, c)  cachedPen(s, w, c)
+#define DeleteObject(o)     cachedDelete((HGDIOBJ)(o))
+
+static COLORREF lerpColor(COLORREF a, COLORREF b, float t) {
+    return RGB((int)(GetRValue(a) + (GetRValue(b) - GetRValue(a)) * t),
+               (int)(GetGValue(a) + (GetGValue(b) - GetGValue(a)) * t),
+               (int)(GetBValue(a) + (GetBValue(b) - GetBValue(a)) * t));
+}
+
+static void fillVGradient(HDC hdc, RECT rc, COLORREF top, COLORREF bottom) {
+    int h = rc.bottom - rc.top;
+    if (h <= 0) return;
+    HBRUSH dcBrush = (HBRUSH)GetStockObject(DC_BRUSH);
+    for (int y = 0; y < h; y += 2) {
+        RECT r = { rc.left, rc.top + y, rc.right, rc.top + y + 2 };
+        if (r.bottom > rc.bottom) r.bottom = rc.bottom;
+        SetDCBrushColor(hdc, lerpColor(top, bottom, (float)y / (float)h));
+        FillRect(hdc, &r, dcBrush);
+    }
+}
+
 typedef struct {
     float x, y;
     float vx, vy;
@@ -84,13 +142,14 @@ typedef struct {
     int fullness;
     int energy;
     float weight;
-    int mood; // 0: Normal, 1: Eating, 2: Zoomies, 3: In Box, 4: Purring, 5: Catnip Frenzy
+    int mood; // 0: Normal, 1: Eating, 2: Zoomies, 3: In Box, 4: Purring, 5: Catnip Frenzy, 6: Sleeping
     int moodTimer;
     float posX;
     float dirX;
+    int napLeft; // seconds of guaranteed sleep left
 } ChubbyCat;
 
-ChubbyCat cat = {"Mochi", 88, 70, 85, 6.2f, 0, 0, 215.0f, 1.0f};
+ChubbyCat cat = {"Mochi", 88, 70, 85, 6.2f, 0, 0, 215.0f, 1.0f, 0};
 float animTimer = 0.0f;
 float fishSwim = 0.0f;
 float yarnBounce = 0.0f;
@@ -103,12 +162,48 @@ HFONT hFontBody  = NULL;
 HFONT hFontSmall = NULL;
 HFONT hFontPop   = NULL;
 
-RECT btnFeed    = { 40,  375, 130, 415 };
-RECT btnPlay    = { 140, 375, 230, 415 };
-RECT btnBox     = { 240, 375, 330, 415 };
-RECT btnCatnip  = { 340, 375, 430, 415 };
-RECT btnZoomies = { 440, 375, 530, 415 };
-RECT btnNap     = { 540, 375, 630, 415 };
+bool soundMuted = false;
+int hoverBtn = -1;
+bool hoverMute = false;
+bool mouseTracking = false;
+int flashBtn = -1;
+int flashTimer = 0;
+int tickCount = 0;
+int alertCooldown = 0;
+ULONGLONG lastNeedsTick = 0;
+
+void feedCat(void);
+void playCat(void);
+void boxCat(void);
+void catnipCat(void);
+void zoomiesCat(void);
+void napCat(void);
+
+typedef struct {
+    RECT rc;
+    const wchar_t* icon;
+    const wchar_t* title;
+    const wchar_t* key;
+    void (*action)(void);
+} ActionBtn;
+
+#define NUM_BTNS 6
+ActionBtn buttons[NUM_BTNS] = {
+    {{  40, 375, 130, 415 }, L"🐟", L"Treat",   L"[1]", feedCat},
+    {{ 140, 375, 230, 415 }, L"🧶", L"Yarn",    L"[2]", playCat},
+    {{ 240, 375, 330, 415 }, L"📦", L"Box",     L"[3]", boxCat},
+    {{ 340, 375, 430, 415 }, L"🌿", L"Catnip",  L"[4]", catnipCat},
+    {{ 440, 375, 530, 415 }, L"💨", L"Zoomies", L"[5]", zoomiesCat},
+    {{ 540, 375, 630, 415 }, L"💤", L"Nap",     L"[6]", napCat},
+};
+RECT btnMute = { 605, 30, 637, 54 };
+
+// Yarn and Zoomies look dimmed when Mochi is too tired (still clickable for the message)
+bool btnEnabled(int i) {
+    if (i == 1) return cat.energy >= 20;
+    if (i == 4) return cat.energy >= 30;
+    return true;
+}
 
 void spawnPopText(float x, float y, const wchar_t* txt, COLORREF col) {
     for (int i = 0; i < MAX_PARTS; i++) {
@@ -139,7 +234,7 @@ void drawRoundedBox(HDC hdc, RECT rc, COLORREF bg, COLORREF border, int radius) 
 }
 
 void drawMeter(HDC hdc, int x, int y, int w, int h, int value, COLORREF fillCol, const wchar_t* label) {
-    SetTextColor(hdc, COLOR_TEXT_MAIN);
+    SetTextColor(hdc, lampOn ? COLOR_TEXT_MAIN : RGB(245, 235, 225));
     SelectObject(hdc, hFontSmall);
     TextOutW(hdc, x, y - 18, label, wcslen(label));
 
@@ -148,12 +243,14 @@ void drawMeter(HDC hdc, int x, int y, int w, int h, int value, COLORREF fillCol,
     TextOutW(hdc, x + w - 32, y - 18, valBuf, wcslen(valBuf));
 
     RECT bgRc = { x, y, x + w, y + h };
-    drawRoundedBox(hdc, bgRc, COLOR_BAR_BG, COLOR_CARD_BORDER, 6);
+    drawRoundedBox(hdc, bgRc, lampOn ? COLOR_BAR_BG : RGB(62, 52, 76),
+                              lampOn ? COLOR_CARD_BORDER : RGB(80, 66, 94), 6);
 
     int fillW = (w * value) / 100;
     if (fillW > 0) {
-        RECT fillRc = { x, y, x + fillW, y + h };
-        drawRoundedBox(hdc, fillRc, fillCol, fillCol, 6);
+        COLORREF col = (value < 25) ? RGB(232, 84, 84) : fillCol;
+        RECT fillRc = { x, y, x + (fillW < 8 ? 8 : fillW), y + h };
+        drawRoundedBox(hdc, fillRc, col, col, 6);
     }
 }
 
@@ -165,19 +262,16 @@ void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
     COLORREF colPlank = lampOn ? COLOR_FLOOR_LINE_DAY : COLOR_FLOOR_LINE_NIGHT;
     COLORREF colRug = lampOn ? COLOR_RUG_DAY : COLOR_RUG_NIGHT;
     COLORREF colRugRing = lampOn ? COLOR_RUG_RING_DAY : COLOR_RUG_RING_NIGHT;
-    COLORREF colSky = lampOn ? COLOR_SKY_DAY : COLOR_SKY_NIGHT;
 
     // 1. Room Wall
-    HBRUSH wallB = CreateSolidBrush(colWall);
     RECT wallRc = { left, top, right, floorY };
-    FillRect(hdc, &wallRc, wallB);
-    DeleteObject(wallB);
+    fillVGradient(hdc, wallRc, lampOn ? RGB(255, 250, 243) : RGB(38, 32, 54),
+                               lampOn ? RGB(246, 232, 216) : colWall);
 
     // 2. Window (Sun in Day / Moon & Stars at Night)
     RECT winRc = { left + 35, top + 18, left + 135, top + 115 };
-    HBRUSH skyB = CreateSolidBrush(colSky);
-    FillRect(hdc, &winRc, skyB);
-    DeleteObject(skyB);
+    fillVGradient(hdc, winRc, lampOn ? RGB(150, 208, 248) : RGB(12, 14, 28),
+                              lampOn ? RGB(214, 238, 252) : RGB(30, 32, 60));
 
     if (lampOn) {
         // Daytime Sun
@@ -193,7 +287,7 @@ void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
         SelectObject(hdc, GetStockObject(NULL_PEN));
         Ellipse(hdc, winRc.right - 36, winRc.top + 10, winRc.right - 10, winRc.top + 36);
         // Shadow to make crescent
-        HBRUSH skyShadow = CreateSolidBrush(COLOR_SKY_NIGHT);
+        HBRUSH skyShadow = CreateSolidBrush(lerpColor(RGB(12, 14, 28), RGB(30, 32, 60), 0.22f));
         SelectObject(hdc, skyShadow);
         Ellipse(hdc, winRc.right - 42, winRc.top + 10, winRc.right - 16, winRc.top + 36);
         DeleteObject(moonB);
@@ -217,6 +311,23 @@ void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
     MoveToEx(hdc, winRc.left, (winRc.top + winRc.bottom) / 2, NULL);
     LineTo(hdc, winRc.right, (winRc.top + winRc.bottom) / 2);
     DeleteObject(winP);
+
+    // Curtains and rod
+    HBRUSH curB = CreateSolidBrush(lampOn ? RGB(238, 160, 160) : RGB(92, 62, 96));
+    SelectObject(hdc, curB);
+    SelectObject(hdc, GetStockObject(NULL_PEN));
+    POINT curL[4] = { { winRc.left - 16, winRc.top - 6 }, { winRc.left + 12, winRc.top - 6 },
+                      { winRc.left + 6, winRc.bottom + 6 }, { winRc.left - 20, winRc.bottom + 6 } };
+    POINT curR[4] = { { winRc.right - 12, winRc.top - 6 }, { winRc.right + 16, winRc.top - 6 },
+                      { winRc.right + 20, winRc.bottom + 6 }, { winRc.right - 6, winRc.bottom + 6 } };
+    Polygon(hdc, curL, 4);
+    Polygon(hdc, curR, 4);
+    DeleteObject(curB);
+    HPEN rodP = CreatePen(PS_SOLID, 3, lampOn ? RGB(176, 130, 96) : RGB(70, 54, 60));
+    SelectObject(hdc, rodP);
+    MoveToEx(hdc, winRc.left - 24, winRc.top - 8, NULL);
+    LineTo(hdc, winRc.right + 24, winRc.top - 8);
+    DeleteObject(rodP);
 
     // 3. Wooden Floor
     HBRUSH floorB = CreateSolidBrush(colFloor);
@@ -271,17 +382,38 @@ void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
     int fishX = fbx + (int)(sinf(fishSwim) * 11.0f);
     int fishY = fby + 14 + (int)(cosf(fishSwim * 1.6f) * 4.0f);
     int fishDir = (cosf(fishSwim) >= 0.0f) ? 1 : -1;
+    int wag = (int)(sinf(fishSwim * 9.0f) * 3.0f);
+
+    SelectObject(hdc, GetStockObject(NULL_PEN));
+    HBRUSH finB = CreateSolidBrush(RGB(255, 150, 80));
+    SelectObject(hdc, finB);
+    POINT tailPts[4] = {
+        { fishX - 6 * fishDir,  fishY },
+        { fishX - 14 * fishDir, fishY - 6 + wag },
+        { fishX - 10 * fishDir, fishY + wag / 2 },
+        { fishX - 14 * fishDir, fishY + 6 + wag }
+    };
+    Polygon(hdc, tailPts, 4);
+    POINT dorsal[3] = { { fishX - 3 * fishDir, fishY - 3 }, { fishX + fishDir, fishY - 8 }, { fishX + 5 * fishDir, fishY - 3 } };
+    Polygon(hdc, dorsal, 3);
+    DeleteObject(finB);
 
     HBRUSH fishB = CreateSolidBrush(COLOR_FISH_GOLD);
     SelectObject(hdc, fishB);
-    Ellipse(hdc, fishX - 6, fishY - 3, fishX + 6, fishY + 3);
-    POINT tailPts[3] = {
-        { fishX - (6 * fishDir), fishY },
-        { fishX - (11 * fishDir), fishY - 4 },
-        { fishX - (11 * fishDir), fishY + 4 }
-    };
-    Polygon(hdc, tailPts, 3);
+    Ellipse(hdc, fishX - 8, fishY - 4, fishX + 8, fishY + 4);
     DeleteObject(fishB);
+    HBRUSH bellyB = CreateSolidBrush(RGB(255, 196, 130));
+    SelectObject(hdc, bellyB);
+    Ellipse(hdc, fishX - 5, fishY + 1, fishX + 5, fishY + 4);
+    DeleteObject(bellyB);
+    HBRUSH eyeW = CreateSolidBrush(RGB(255, 255, 255));
+    SelectObject(hdc, eyeW);
+    Ellipse(hdc, fishX + 4 * fishDir - 2, fishY - 3, fishX + 4 * fishDir + 2, fishY + 1);
+    DeleteObject(eyeW);
+    HBRUSH eyeP = CreateSolidBrush(RGB(20, 16, 26));
+    SelectObject(hdc, eyeP);
+    Ellipse(hdc, fishX + 5 * fishDir - 1, fishY - 2, fishX + 5 * fishDir + 1, fishY);
+    DeleteObject(eyeP);
 
     int bubY = fby + 20 - ((int)(bubbleTimer * 20.0f) % 22);
     HBRUSH bubB = CreateSolidBrush(RGB(255, 255, 255));
@@ -400,6 +532,7 @@ void drawCozyRoom(HDC hdc, int left, int top, int right, int bottom) {
 
 void drawTheChubbyCat(HDC hdc, int cx, int cy) {
     float breathe = sinf(animTimer * 2.2f) * 3.0f;
+    bool blinking = fmodf(animTimer, 5.3f) < 0.2f;
     float tailWag = sinf(animTimer * (cat.mood == 2 || cat.mood == 5 ? 7.5f : 2.5f)) * 14.0f;
 
     if (cat.mood == 3) {
@@ -510,6 +643,14 @@ void drawTheChubbyCat(HDC hdc, int cx, int cy) {
     Ellipse(hdc, cx - 24, cy - 12, cx + 24, cy + 12);
     DeleteObject(muzB);
 
+    if (cat.happiness >= 80 || cat.mood == 4) {
+        HBRUSH blushB = CreateSolidBrush(RGB(255, 150, 140));
+        SelectObject(hdc, blushB);
+        Ellipse(hdc, cx - 52, cy - 8, cx - 36, cy + 2);
+        Ellipse(hdc, cx + 36, cy - 8, cx + 52, cy + 2);
+        DeleteObject(blushB);
+    }
+
     HBRUSH noseB = CreateSolidBrush(COLOR_CAT_NOSE);
     SelectObject(hdc, noseB);
     POINT nosePt[3] = { { cx - 6, cy - 7 }, { cx + 6, cy - 7 }, { cx, cy - 1 } };
@@ -540,7 +681,7 @@ void drawTheChubbyCat(HDC hdc, int cx, int cy) {
         Ellipse(hdc, cx - 31, cy - 22, cx - 23, cy - 14);
         Ellipse(hdc, cx + 17, cy - 22, cx + 25, cy - 14);
         DeleteObject(sparkle);
-    } else if (cat.mood == 4) {
+    } else if (cat.mood == 4 || cat.mood == 6 || blinking) {
         HPEN eyeP = CreatePen(PS_SOLID, 3, COLOR_TEXT_MAIN);
         SelectObject(hdc, eyeP);
         MoveToEx(hdc, cx - 32, cy - 14, NULL); LineTo(hdc, cx - 16, cy - 14);
@@ -568,23 +709,211 @@ void drawTheChubbyCat(HDC hdc, int cx, int cy) {
     }
 }
 
-void drawActionButton(HDC hdc, RECT rc, const wchar_t* icon, const wchar_t* title) {
-    drawRoundedBox(hdc, rc, COLOR_BTN_BG, COLOR_BTN_BORDER, 8);
+void drawActionButton(HDC hdc, const ActionBtn* b, bool hover, bool pressed, bool enabled) {
+    COLORREF bg, border, txt;
+    if (!enabled) {
+        bg     = lampOn ? RGB(240, 234, 228) : RGB(44, 36, 54);
+        border = lampOn ? RGB(222, 212, 202) : RGB(70, 58, 82);
+        txt    = lampOn ? RGB(176, 160, 150) : RGB(120, 108, 130);
+    } else if (hover) {
+        bg     = lampOn ? RGB(255, 230, 208) : RGB(78, 62, 92);
+        border = lampOn ? RGB(240, 160, 110) : RGB(140, 110, 160);
+        txt    = lampOn ? COLOR_TEXT_MAIN : RGB(245, 235, 225);
+    } else {
+        bg     = lampOn ? COLOR_BTN_BG : RGB(58, 46, 70);
+        border = lampOn ? COLOR_BTN_BORDER : RGB(95, 78, 110);
+        txt    = lampOn ? COLOR_TEXT_MAIN : RGB(245, 235, 225);
+    }
+
+    RECT rc = b->rc;
+    if (pressed) {
+        OffsetRect(&rc, 0, 2);
+    } else {
+        COLORREF shade = lampOn ? RGB(238, 216, 196) : RGB(26, 20, 34);
+        RECT sh = b->rc;
+        OffsetRect(&sh, 0, 2);
+        drawRoundedBox(hdc, sh, shade, shade, 8);
+    }
+    drawRoundedBox(hdc, rc, bg, border, 8);
+
     SetBkMode(hdc, TRANSPARENT);
-    SetTextColor(hdc, COLOR_TEXT_MAIN);
+    SetTextColor(hdc, txt);
     SelectObject(hdc, hFontBody);
-    
     wchar_t buf[32];
-    swprintf(buf, 32, L"%ls %ls", icon, title);
+    swprintf(buf, 32, L"%ls %ls", b->icon, b->title);
     RECT tr = rc;
     DrawTextW(hdc, buf, -1, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    SelectObject(hdc, hFontSmall);
+    SetTextColor(hdc, lampOn ? COLOR_TEXT_MUTED : RGB(180, 165, 185));
+    RECT hr = { b->rc.left, b->rc.bottom + 4, b->rc.right, b->rc.bottom + 20 };
+    DrawTextW(hdc, b->key, -1, &hr, DT_CENTER | DT_SINGLELINE);
 }
 
-void soundBoop() { Beep(880, 80); }
-void soundPurr() { Beep(220, 100); Beep(240, 100); }
-void soundZoom() { Beep(600, 50); Beep(800, 50); Beep(1100, 70); }
-void soundNip()  { Beep(300, 120); }
-void soundSwitch() { Beep(1200, 40); Beep(900, 50); }
+// Beep() blocks until the tone ends, which froze the animation. Tones now play
+// on a short-lived worker thread; a new sound is skipped while one is playing.
+typedef struct { int n; int freq[4]; int dur[4]; } SoundSeq;
+static volatile LONG soundBusy = 0;
+
+static DWORD WINAPI soundThread(LPVOID p) {
+    SoundSeq* s = (SoundSeq*)p;
+    for (int i = 0; i < s->n; i++) Beep((DWORD)s->freq[i], (DWORD)s->dur[i]);
+    free(s);
+    InterlockedExchange(&soundBusy, 0);
+    return 0;
+}
+
+static void playTones(int n, const int* freq, const int* dur) {
+    if (soundMuted || n <= 0) return;
+    if (InterlockedCompareExchange(&soundBusy, 1, 0) != 0) return;
+    SoundSeq* s = (SoundSeq*)malloc(sizeof(SoundSeq));
+    if (!s) { InterlockedExchange(&soundBusy, 0); return; }
+    s->n = (n > 4) ? 4 : n;
+    for (int i = 0; i < s->n; i++) { s->freq[i] = freq[i]; s->dur[i] = dur[i]; }
+    HANDLE h = CreateThread(NULL, 0, soundThread, s, 0, NULL);
+    if (h) CloseHandle(h);
+    else { free(s); InterlockedExchange(&soundBusy, 0); }
+}
+
+void soundBoop()   { int f[] = { 880 };            int d[] = { 80 };           playTones(1, f, d); }
+void soundPurr()   { int f[] = { 220, 240 };       int d[] = { 100, 100 };     playTones(2, f, d); }
+void soundZoom()   { int f[] = { 600, 800, 1100 }; int d[] = { 50, 50, 70 };   playTones(3, f, d); }
+void soundNip()    { int f[] = { 300 };            int d[] = { 120 };          playTones(1, f, d); }
+void soundSwitch() { int f[] = { 1200, 900 };      int d[] = { 40, 50 };       playTones(2, f, d); }
+
+void triggerBtn(int i) {
+    buttons[i].action();
+    flashBtn = i;
+    flashTimer = 8;
+}
+
+void toggleMute(void) {
+    soundMuted = !soundMuted;
+    snprintf(statusMessage, sizeof(statusMessage), "%s",
+             soundMuted ? "Sound off. Mochi purrs silently." : "Sound on. Mochi's purrs are back!");
+    if (!soundMuted) soundBoop();
+}
+
+void wakeCat(const char* msg) {
+    cat.mood = 0;
+    cat.moodTimer = 0;
+    cat.napLeft = 0;
+    snprintf(statusMessage, sizeof(statusMessage), "%s", msg);
+    spawnPopText(cat.posX, 125, L"!", RGB(245, 170, 60));
+}
+
+const wchar_t* chonkTier(float w) {
+    if (w < 6.5f)  return L"Fluffy Loaf";
+    if (w < 7.5f)  return L"Chonky";
+    if (w < 9.0f)  return L"Extra Chonk";
+    if (w < 11.0f) return L"Absolute Unit";
+    return L"Mega Chonk";
+}
+
+void saveGame(void);
+
+// Called once per second: needs slowly drop, Mochi naps when exhausted.
+void tickNeeds(void) {
+    tickCount++;
+
+    if (cat.mood == 6) {
+        cat.energy = (cat.energy + 4 > 100) ? 100 : cat.energy + 4;
+        if (cat.napLeft > 0) cat.napLeft--;
+        spawnPopText(cat.posX + 45, 135, (tickCount & 1) ? L"z" : L"Z", RGB(120, 180, 240));
+        if (cat.energy >= 100 && cat.napLeft <= 0) {
+            wakeCat("Mochi woke up from her nap, fully recharged!");
+        }
+    } else {
+        if (tickCount % 3 == 0 && cat.fullness > 0) cat.fullness--;
+        if (tickCount % 5 == 0 && cat.energy > 0)   cat.energy--;
+        if (tickCount % 4 == 0 && cat.fullness < 40) {
+            cat.happiness -= (cat.fullness < 15) ? 2 : 1;
+            if (cat.happiness < 0) cat.happiness = 0;
+        }
+
+        if (cat.mood == 0) {
+            if (cat.energy <= 10) {
+                cat.mood = 6;
+                cat.moodTimer = 0;
+                cat.napLeft = 5;
+                snprintf(statusMessage, sizeof(statusMessage), "Mochi ran out of energy and dozed off on the rug. Click her to wake her up.");
+            } else if (cat.fullness < 25 && alertCooldown <= 0) {
+                snprintf(statusMessage, sizeof(statusMessage), "Mochi's tummy is rumbling... maybe a salmon treat?");
+                spawnPopText(cat.posX, 125, L"MEOW!", RGB(235, 140, 60));
+                soundBoop();
+                alertCooldown = 20;
+            }
+        }
+    }
+
+    if (alertCooldown > 0) alertCooldown--;
+    if (tickCount % 30 == 0) saveGame();
+}
+
+// --- Save / load (stats persist between sessions) -------------------------
+#define SAVE_MAGIC 0x4D4F4348u
+typedef struct {
+    unsigned magic;
+    int happiness, fullness, energy;
+    float weight;
+    int lampOn, muted;
+    long long savedAt;
+} SaveData;
+
+static bool savePath(wchar_t* out, size_t n) {
+    wchar_t base[MAX_PATH];
+    DWORD len = GetEnvironmentVariableW(L"LOCALAPPDATA", base, MAX_PATH);
+    if (len == 0 || len >= MAX_PATH) return false;
+    swprintf(out, n, L"%ls\\MochiCat.sav", base);
+    return true;
+}
+
+void saveGame(void) {
+    wchar_t path[MAX_PATH + 32];
+    if (!savePath(path, MAX_PATH + 32)) return;
+    FILE* f = _wfopen(path, L"wb");
+    if (!f) return;
+    SaveData d = { SAVE_MAGIC, cat.happiness, cat.fullness, cat.energy, cat.weight,
+                   lampOn ? 1 : 0, soundMuted ? 1 : 0, (long long)time(NULL) };
+    fwrite(&d, sizeof(d), 1, f);
+    fclose(f);
+}
+
+static int decayTo(int v, int amount, int floorVal) {
+    int r = v - amount;
+    if (r < floorVal) r = (v < floorVal) ? v : floorVal;
+    return r;
+}
+
+void loadGame(void) {
+    wchar_t path[MAX_PATH + 32];
+    if (!savePath(path, MAX_PATH + 32)) return;
+    FILE* f = _wfopen(path, L"rb");
+    if (!f) return;
+    SaveData d;
+    size_t got = fread(&d, sizeof(d), 1, f);
+    fclose(f);
+    if (got != 1 || d.magic != SAVE_MAGIC) return;
+    if (d.happiness < 0 || d.happiness > 100 || d.fullness < 0 || d.fullness > 100 ||
+        d.energy < 0 || d.energy > 100 || !(d.weight >= 3.0f && d.weight <= 40.0f)) return;
+
+    cat.happiness = d.happiness;
+    cat.fullness = d.fullness;
+    cat.energy = d.energy;
+    cat.weight = d.weight;
+    lampOn = d.lampOn != 0;
+    soundMuted = d.muted != 0;
+
+    // Gentle catch-up for time spent away (never drops to zero)
+    long long away = (long long)time(NULL) - d.savedAt;
+    if (away >= 300) {
+        int mins = (int)((away / 60 > 600) ? 600 : away / 60);
+        cat.fullness  = decayTo(cat.fullness, mins / 3, 15);
+        cat.happiness = decayTo(cat.happiness, mins / 6, 20);
+        cat.energy    = (cat.energy + mins / 2 > 100) ? 100 : cat.energy + mins / 2;
+        snprintf(statusMessage, sizeof(statusMessage), "Welcome back! Mochi dozed while you were away and missed you.");
+    }
+}
 
 void toggleLamp() {
     lampOn = !lampOn;
@@ -621,6 +950,7 @@ void playCat() {
         spawnPopText(cat.posX, 135, L"TIRED", RGB(150, 150, 150));
     } else {
         cat.energy -= 25;
+        cat.weight = fmaxf(4.0f, cat.weight - 0.03f);
         cat.fullness = (cat.fullness - 15 < 0) ? 0 : cat.fullness - 15;
         cat.happiness = (cat.happiness + 20 > 100) ? 100 : cat.happiness + 20;
         cat.mood = 1;
@@ -658,6 +988,7 @@ void zoomiesCat() {
         cat.mood = 2;
         cat.moodTimer = 90;
         cat.energy -= 30;
+        cat.weight = fmaxf(4.0f, cat.weight - 0.05f);
         cat.happiness = 100;
         snprintf(statusMessage, sizeof(statusMessage), "💨 CAT ZOOMIES! Mochi is galloping across the room!");
         spawnPopText(cat.posX, 115, L"ZOOM!!", RGB(235, 75, 75));
@@ -666,11 +997,11 @@ void zoomiesCat() {
 }
 
 void napCat() {
-    cat.energy = (cat.energy + 40 > 100) ? 100 : cat.energy + 40;
-    cat.fullness = (cat.fullness - 10 < 0) ? 0 : cat.fullness - 10;
-    cat.mood = 4;
-    cat.moodTimer = 80;
-    snprintf(statusMessage, sizeof(statusMessage), "Mochi curled into a round loaf and drifted off to sleep.");
+    cat.mood = 6;
+    cat.moodTimer = 0;
+    cat.napLeft = 5;
+    cat.fullness = (cat.fullness - 5 < 0) ? 0 : cat.fullness - 5;
+    snprintf(statusMessage, sizeof(statusMessage), "Mochi curled into a round loaf and drifted off to sleep. Click her to wake her up.");
     spawnPopText(cat.posX, 125, L"zzz...", RGB(120, 180, 240));
     soundPurr();
 }
@@ -678,6 +1009,12 @@ void napCat() {
 void clickInteractiveScene(int mx, int my) {
     int cx = (int)cat.posX;
     int cy = 205;
+
+    // Waking a sleeping Mochi
+    if (cat.mood == 6 && mx >= cx - 85 && mx <= cx + 85 && my >= cy - 72 && my <= cy + 72) {
+        wakeCat("Mochi stretched, yawned, and blinked up at you.");
+        return;
+    }
 
     // 1. Click Standing Lamp (Toggle Dark Mode)
     if (mx >= 355 && mx <= 410 && my >= 95 && my <= 220) {
@@ -748,6 +1085,20 @@ void clickInteractiveScene(int mx, int my) {
     }
 }
 
+// True when the cursor is over something clickable (used for the hand cursor)
+bool isInteractive(int mx, int my) {
+    POINT pt = { mx, my };
+    for (int i = 0; i < NUM_BTNS; i++) if (PtInRect(&buttons[i].rc, pt)) return true;
+    if (PtInRect(&btnMute, pt)) return true;
+    int cx = (int)cat.posX;
+    if (mx >= 355 && mx <= 410 && my >= 95 && my <= 220) return true;   // lamp
+    if (mx >= 45 && mx <= 115 && my >= 160 && my <= 250) return true;   // aquarium
+    if (mx >= 115 && mx <= 155 && my >= 220 && my <= 260) return true;  // yarn
+    if (mx >= 320 && mx <= 365 && my >= 210 && my <= 255) return true;  // bowl
+    if (mx >= cx - 70 && mx <= cx + 70 && my >= 140 && my <= 270) return true; // Mochi
+    return false;
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_CREATE:
@@ -765,6 +1116,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
 
         SetTimer(hwnd, TIMER_ANIM, 16, NULL);
+        loadGame();
         break;
 
     case WM_TIMER:
@@ -772,6 +1124,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             animTimer += 0.04f;
             fishSwim += 0.05f;
             bubbleTimer += 0.03f;
+
+            if (flashTimer > 0) flashTimer--;
+            {
+                ULONGLONG now = GetTickCount64();
+                if (now - lastNeedsTick >= 1000) {
+                    lastNeedsTick = now;
+                    tickNeeds();
+                }
+            }
 
             if (yarnBounce > 0.0f) {
                 yarnBounce -= 0.8f;
@@ -802,25 +1163,53 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         break;
 
-    case WM_LBUTTONDOWN: {
-        int mx = LOWORD(lParam);
-        int my = HIWORD(lParam);
-
-        if (mx >= btnFeed.left && mx <= btnFeed.right && my >= btnFeed.top && my <= btnFeed.bottom) {
-            feedCat();
-        } else if (mx >= btnPlay.left && mx <= btnPlay.right && my >= btnPlay.top && my <= btnPlay.bottom) {
-            playCat();
-        } else if (mx >= btnBox.left && mx <= btnBox.right && my >= btnBox.top && my <= btnBox.bottom) {
-            boxCat();
-        } else if (mx >= btnCatnip.left && mx <= btnCatnip.right && my >= btnCatnip.top && my <= btnCatnip.bottom) {
-            catnipCat();
-        } else if (mx >= btnZoomies.left && mx <= btnZoomies.right && my >= btnZoomies.top && my <= btnZoomies.bottom) {
-            zoomiesCat();
-        } else if (mx >= btnNap.left && mx <= btnNap.right && my >= btnNap.top && my <= btnNap.bottom) {
-            napCat();
-        } else {
-            clickInteractiveScene(mx, my);
+    case WM_MOUSEMOVE: {
+        POINT pt = { (short)LOWORD(lParam), (short)HIWORD(lParam) };
+        hoverBtn = -1;
+        for (int i = 0; i < NUM_BTNS; i++) {
+            if (PtInRect(&buttons[i].rc, pt)) { hoverBtn = i; break; }
         }
+        hoverMute = PtInRect(&btnMute, pt) ? true : false;
+        if (!mouseTracking) {
+            TRACKMOUSEEVENT tme = { sizeof(tme), TME_LEAVE, hwnd, 0 };
+            TrackMouseEvent(&tme);
+            mouseTracking = true;
+        }
+        break;
+    }
+
+    case WM_MOUSELEAVE:
+        hoverBtn = -1;
+        hoverMute = false;
+        mouseTracking = false;
+        break;
+
+    case WM_SETCURSOR:
+        if (LOWORD(lParam) == HTCLIENT) {
+            POINT pt;
+            GetCursorPos(&pt);
+            ScreenToClient(hwnd, &pt);
+            SetCursor(LoadCursor(NULL, isInteractive(pt.x, pt.y) ? IDC_HAND : IDC_ARROW));
+            return TRUE;
+        }
+        return DefWindowProcW(hwnd, msg, wParam, lParam);
+
+    case WM_KEYDOWN:
+        if (wParam >= '1' && wParam <= '6') triggerBtn((int)(wParam - '1'));
+        else if (wParam >= VK_NUMPAD1 && wParam <= VK_NUMPAD6) triggerBtn((int)(wParam - VK_NUMPAD1));
+        else if (wParam == 'L') toggleLamp();
+        else if (wParam == 'M') toggleMute();
+        break;
+
+    case WM_LBUTTONDOWN: {
+        POINT pt = { (short)LOWORD(lParam), (short)HIWORD(lParam) };
+        int hit = -1;
+        for (int i = 0; i < NUM_BTNS; i++) {
+            if (PtInRect(&buttons[i].rc, pt)) { hit = i; break; }
+        }
+        if (hit >= 0) triggerBtn(hit);
+        else if (PtInRect(&btnMute, pt)) toggleMute();
+        else clickInteractiveScene(pt.x, pt.y);
         break;
     }
 
@@ -859,11 +1248,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
         SelectObject(hdc, hFontSmall);
         SetTextColor(hdc, lampOn ? COLOR_TEXT_MUTED : RGB(180, 165, 185));
-        wchar_t weightStr[80];
-        swprintf(weightStr, 80, L"Weight: %.2f kg  |  Click the lamp to toggle Dark Mode!", cat.weight);
+        wchar_t weightStr[128];
+        swprintf(weightStr, 128, L"%ls  •  %.2f kg  |  Click the lamp for day/night  •  Keys 1-6  •  M = mute",
+                 chonkTier(cat.weight), cat.weight);
         TextOutW(hdc, 45, 60, weightStr, wcslen(weightStr));
 
-        drawTheChubbyCat(hdc, (int)cat.posX, 205);
+        int hop = 0;
+        if (cat.mood == 1 || cat.mood == 5) hop = -(int)(fabsf(sinf(animTimer * 9.0f)) * 9.0f);
+        drawTheChubbyCat(hdc, (int)cat.posX, 205 + hop);
 
         // HUD Card
         int mx = 415;
@@ -891,17 +1283,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         SelectObject(hdc, hFontSmall);
 
         wchar_t wMsg[256];
-        mbstowcs(wMsg, statusMessage, 256);
+        MultiByteToWideChar(CP_UTF8, 0, statusMessage, -1, wMsg, 256);
         RECT textBubble = { bubbleRc.left + 14, bubbleRc.top, bubbleRc.right - 14, bubbleRc.bottom };
         DrawTextW(hdc, wMsg, -1, &textBubble, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
-        // 6 Action Buttons
-        drawActionButton(hdc, btnFeed,    L"🐟", L"Treat");
-        drawActionButton(hdc, btnPlay,    L"🧶", L"Yarn");
-        drawActionButton(hdc, btnBox,     L"📦", L"Box");
-        drawActionButton(hdc, btnCatnip,  L"🌿", L"Catnip");
-        drawActionButton(hdc, btnZoomies, L"💨", L"Zoomies");
-        drawActionButton(hdc, btnNap,     L"💤", L"Nap");
+        // Action buttons
+        for (int i = 0; i < NUM_BTNS; i++) {
+            drawActionButton(hdc, &buttons[i], hoverBtn == i, flashBtn == i && flashTimer > 0, btnEnabled(i));
+        }
+
+        // Mute toggle
+        drawRoundedBox(hdc, btnMute,
+                       hoverMute ? (lampOn ? RGB(255, 230, 208) : RGB(78, 62, 92)) : (lampOn ? COLOR_BTN_BG : RGB(58, 46, 70)),
+                       lampOn ? COLOR_BTN_BORDER : RGB(95, 78, 110), 8);
+        SetTextColor(hdc, lampOn ? COLOR_TEXT_MAIN : RGB(245, 235, 225));
+        SelectObject(hdc, hFontBody);
+        RECT muteTr = btnMute;
+        DrawTextW(hdc, soundMuted ? L"\U0001F507" : L"\U0001F50A", -1, &muteTr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
         BitBlt(hdcWin, 0, 0, winW, winH, hdc, 0, 0, SRCCOPY);
         SelectObject(hdc, oldBmp);
@@ -912,11 +1310,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_DESTROY:
+        saveGame();
         KillTimer(hwnd, TIMER_ANIM);
         DeleteObject(hFontTitle);
         DeleteObject(hFontBody);
         DeleteObject(hFontSmall);
         DeleteObject(hFontPop);
+        freeGdiCache();
         PostQuitMessage(0);
         break;
 
@@ -934,15 +1334,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
-    wc.hCursor = LoadCursor(NULL, IDC_HAND);
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = NULL;
 
     RegisterClassW(&wc);
 
+    // Size the window so the *client* area is exactly 670x445
+    DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+    RECT wr = { 0, 0, 670, 445 };
+    AdjustWindowRect(&wr, style, FALSE);
+
     HWND hwnd = CreateWindowExW(
         0, CLASS_NAME, L"Mochi the Chubby Cat",
-        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, 685, 480,
+        style,
+        CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top,
         NULL, NULL, hInstance, NULL
     );
 
